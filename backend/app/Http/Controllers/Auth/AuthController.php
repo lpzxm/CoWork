@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use App\Http\Resources\UserResource;
 use Mail;
@@ -38,7 +39,7 @@ class AuthController extends Controller
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255|unique:users',
                 'email' => 'required|string|email|max:255|unique:users',
-                'password' => 'required|string|min:8|regex:/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&]).{8,}$/',
+                'password' => 'required|string|min:8|regex:/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{8,}$/',
                 'role' => 'nullable|string|exists:roles,name',
             ], $messages);
 
@@ -57,6 +58,8 @@ class AuthController extends Controller
             $user->assignRole($role); // asignar rol validado o super-admin a usuario registrado
 
             return response()->json(['status' => 'success', 'message' => 'Usuario registrado correctamente.', 'data' => new UserResource($user)], 200);
+        } catch (QueryException $qe) {
+            return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
@@ -87,6 +90,8 @@ class AuthController extends Controller
             Mail::to($user->email)->send(new UserVerificationCodeMail(name: $user->name, code: $code));
 
             return response()->json(['status' => 'success', 'message' => 'Codigo de verificación enviado, revisa tu email.', 'step' => 'verify', 'email' => $user->email], 200);
+        } catch (QueryException $qe) {
+            return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
@@ -120,6 +125,8 @@ class AuthController extends Controller
             $token = $user->createToken('auth_token')->accessToken;
 
             return response()->json(['status' => 'success', 'message' => 'Verificado correctamente.', 'token' => $token, 'data' => new UserResource($user)], 200);
+        } catch (QueryException $qe) {
+            return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
@@ -130,6 +137,8 @@ class AuthController extends Controller
         try {
             $request->user()->token()->revoke(); // revocar token del usuario logueado para cerrar sesión
             return response()->json(['status' => 'success', 'message' => 'Usuario deslogueado correctamente.'], 200);
+        } catch (QueryException $qe) {
+            return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }

@@ -39,7 +39,7 @@ class UserCredentialsMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'mail.user.verification-code',
+            view: 'mail.user.auth-credentials',
         );
     }
 }

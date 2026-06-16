@@ -12,7 +12,6 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\Contracts\OAuthenticatable;
 use Laravel\Passport\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
-use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -47,10 +46,24 @@ class User extends Authenticatable implements OAuthenticatable, Auditable
         ];
     }
 
-    public static function makeRandomPassword()
+    public static function makeRandomPassword(): string
     {
-        $password = Str::password(9, letters: true, numbers: true, symbols: true); // hashear contraseña generada para almacenamiento seguro en base de datos
-        return $password;
+        $lower = 'abcdefghijklmnopqrstuvwxyz';
+        $upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $digits = '0123456789';
+        $special = '@$!%*?&#^_~()-+={}[]|;:,.<>';
+
+        $password = $lower[random_int(0, 25)] .
+            $upper[random_int(0, 25)] .
+            $digits[random_int(0, 9)] .
+            $special[random_int(0, strlen($special) - 1)];
+
+        $all = $lower . $upper . $digits . $special;
+        for ($i = 0; $i < 5; $i++) {
+            $password .= $all[random_int(0, strlen($all) - 1)];
+        }
+
+        return str_shuffle($password);
     }
 
     public function verifyAuthCodes () : HasMany

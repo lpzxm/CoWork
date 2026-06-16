@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
@@ -26,15 +27,19 @@ class UserController extends Controller
         $currentUser = auth()->user();
         if (!$currentUser->hasRole(['super-admin', 'admin'])) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
 
-        $query = User::with('roles');
+        try {
+            $query = User::with('roles');
 
-        if ($currentUser->hasRole('admin')) {
-            $query->whereDoesntHave('roles', function ($q) {
-                $q->where('name', 'super-admin');
-            });
+            if ($currentUser->hasRole('admin')) {
+                $query->whereDoesntHave('roles', function ($q) {
+                    $q->where('name', 'super-admin');
+                });
+            }
+
+            return UserResource::collection($query->get());
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
-
-        return UserResource::collection($query->get());
     }
 
     /**
@@ -48,8 +53,8 @@ class UserController extends Controller
             // validacion de campos recibidos en request para registro de usuario
             $plainPassword = User::makeRandomPassword();
             $request->merge(['password' => $plainPassword]);
-            $data = UserData::validateAndCreate($request->all());
-            
+            $data = UserData::validateWithId($request->all());
+
             $role = $data->role ?? 'coordinador';
             if ($currentUser->hasRole('admin') && $role !== 'coordinador') return response()->json(['status' => 'error', 'message' => 'Solo puedes asignar rol de coordinador, selecciona uno correcto.'], 403);
 
@@ -68,6 +73,8 @@ class UserController extends Controller
             return response()->json(['status' => 'success', 'message' => 'Usuario registrado correctamente.', 'data' => new UserResource($user)], 200);
         } catch (ValidationException $ve) {
             return response()->json(['status' => 'error', 'message' => 'Datos inválidos.', 'errors' => $ve->errors()], 400);
+        } catch (QueryException $qe) {
+            return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
@@ -93,6 +100,8 @@ class UserController extends Controller
 
             if (!$user) return response()->json(['status' => 'error', 'message' => 'Usuario no encontrado.'], 404);
             return new UserResource($user);
+        } catch (QueryException $qe) {
+            return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
@@ -110,10 +119,7 @@ class UserController extends Controller
             if (!$user) return response()->json(['status' => 'error', 'message' => 'Usuario no encontrado.'], 404);
             if ($currentUser->hasRole('admin') && $user->hasRole('super-admin')) return response()->json(['status' => 'error', 'message' => 'No autorizado para modificar este usuario.'], 403);
 
-            $validator = Validator::make($request->all(), UserData::rules($user->id), UserData::messages());
-            if ($validator->fails()) return response()->json(['status' => 'error', 'message' => 'Datos inválidos.', 'errors' => $validator->errors()], 400);
-
-            $data = UserData::from($validator->validated());
+            $data = UserData::validateWithId($request->all(), $user->id);
 
             $role = $data->role ?? $user->getRoleNames()->first();
             if ($currentUser->hasRole('admin') && $role !== 'coordinador') return response()->json(['status' => 'error', 'message' => 'Solo puedes asignar rol de coordinador, selecciona uno correcto.'], 403);
@@ -125,8 +131,14 @@ class UserController extends Controller
                 'active' => $data->active ?? $user->active,
             ]);
 
+            if ($user->wasChanged('active') && !$user->active) $user->tokens()->delete();
+
             $user->syncRoles($role); // asignar rol en base a update
             return response()->json(['status' => 'success', 'message' => 'Usuario actualizado correctamente.', 'data' => new UserResource($user)], 200);
+        } catch (ValidationException $ve) {
+            return response()->json(['status' => 'error', 'message' => 'Datos inválidos.', 'errors' => $ve->errors()], 400);
+        } catch (QueryException $qe) {
+            return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
@@ -143,6 +155,8 @@ class UserController extends Controller
             $user = User::find($id);
             if (!$user) return response()->json(['status' => 'error', 'message' => 'Usuario no encontrado.'], 404);
             if ($user->id === $currentUser->id) return response()->json(['status' => 'error', 'message' => 'No puedes eliminar tu propio usuario.'], 403);
+            if ($currentUser->hasRole('admin') && $user->getRoleNames()->first() !== 'coordinador') return response()->json(['status' => 'error', 'message' => 'No autorizado para eliminar este usuario.'], 403);
+
 
             if ($user->createdTasks()->count() > 0 || $user->assignedTasks()->count() > 0) {
                 return response()->json(['status' => 'error', 'message' => 'No se puede eliminar el usuario porque tiene tareas o subtareas asociadas. Elimínalas primero.'], 409);
@@ -153,6 +167,13 @@ class UserController extends Controller
             $user->delete();
 
             return response()->json(['status' => 'success', 'message' => 'Usuario eliminado correctamente.'], 200);
+        } catch (QueryException $qe) {
+            $errorCode = $qe->errorInfo[1] ?? null;
+            if ($errorCode === 1451 || $errorCode === 1217) {
+                return response()->json(['status' => 'error', 'message' => 'No se puede eliminar la tarea porque tiene registros asociados. Elimínalos primero.'], 409);
+            }
+
+            return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
         } catch (\Exception $e) {
             $errorCode = $e->errorInfo[1] ?? null;
             if ($errorCode === 1451 || $errorCode === 1217) {
