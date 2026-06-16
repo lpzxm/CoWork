@@ -68,8 +68,8 @@ class FileController extends Controller
             $path = $uploaded->storeAs('files', $storedName, 'public');
 
             $data = FileData::validateWithId([
-                'task_id' => $taskId ?? $subTask->task_id,
-                'sub_task_id' => $subTaskId,
+                'task_id' => $taskId,
+                'sub_task_id' => $subTaskId ?? null,
                 'file_type' => $extension,
                 'file_name' => $originalName,
                 'url' => $path,
@@ -92,14 +92,13 @@ class FileController extends Controller
     public function show(int $id)
     {
         try {
-            $file = File::with('uploader')->find($id);
+            $file = File::with('uploader', 'task', 'task.coordinators')->find($id);
             if (!$file) return response()->json(['status' => 'error', 'message' => 'Archivo no encontrado.'], 404);
 
             $currentUser = auth()->user();
             $task = $file->task;
 
-            if (!$currentUser->hasRole(['super-admin', 'admin']) && !$task->coordinators()->where('user_id', $currentUser->id)->exists()) 
-                return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
+            if (!$currentUser->hasRole(['super-admin', 'admin']) && !$task->coordinators->contains('id', $currentUser->id)) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
             
 
             if (!Storage::disk('public')->exists($file->url)) 
@@ -127,7 +126,7 @@ class FileController extends Controller
         if (!$currentUser->hasRole(['super-admin', 'admin', 'coordinador'])) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
         
         try {
-            $file = File::find($id);
+            $file = File::find($id)->with('task');
             if (!$file) return response()->json(['status' => 'error', 'message' => 'Archivo no encontrado.'], 404);
 
             $task = $file->task;

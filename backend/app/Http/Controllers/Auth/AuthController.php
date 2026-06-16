@@ -68,6 +68,21 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         try {
+            $rules = [
+                'email' => 'required|email',
+                'password' => 'required|string|min:8',
+            ];
+
+            $messages = [
+                'email.required' => 'El correo électronico es obligatorio.',
+                'email.email' => 'El correo électronico debe ser una direccion de correo electronico valida.',
+                'password.required' => 'La contraseña es obligatoria.',
+                'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
+            ];
+
+            $validator = Validator::make($request->all(), $rules, $messages);
+            if ($validator->fails()) return response()->json(['status' => 'error', 'message' => $validator->errors()->first()], 400);
+
             $user = User::where('email', $request->email)->first();
             if (!$user || !Hash::check($request->password, $user->password)) {
                 return response()->json(['status' => 'error', 'message' => 'Credenciales inválidas.'], 401);
@@ -88,6 +103,7 @@ class AuthController extends Controller
             ]);
 
             Mail::to($user->email)->send(new UserVerificationCodeMail(name: $user->name, code: $code));
+            $user->auditRequestToken('2fa_code');
 
             return response()->json(['status' => 'success', 'message' => 'Codigo de verificación enviado, revisa tu email.', 'step' => 'verify', 'email' => $user->email], 200);
         } catch (QueryException $qe) {
@@ -104,7 +120,7 @@ class AuthController extends Controller
                 'email' => 'required|email|exists:users,email',
                 'code' => 'required|string|size:6',
             ];
-        
+
             $messages = [
                 'email.required' => 'El correo electrónico es obligatorio.',
                 'email.email' => 'El correo electrónico debe ser una dirección de correo electrónico válida.',
@@ -123,10 +139,11 @@ class AuthController extends Controller
             if (!$code || !$code->isValid()) return response()->json(['status' => 'error', 'message' => 'El codigo de verificación es incorrecto.'], 400);
 
             $token = $user->createToken('auth_token')->accessToken;
+            $user->auditLogin();
 
             return response()->json(['status' => 'success', 'message' => 'Verificado correctamente.', 'token' => $token, 'data' => new UserResource($user)], 200);
         } catch (QueryException $qe) {
-            return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
+            return response()->json(['status' => 'error', 'message' => $qe->getMessage()], 400);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
@@ -135,7 +152,10 @@ class AuthController extends Controller
     public function logout(Request $request): JsonResponse
     {
         try {
-            $request->user()->token()->revoke(); // revocar token del usuario logueado para cerrar sesión
+            $user = $request->user();
+            $user->tokens()->delete();
+            $user->auditLogout();
+
             return response()->json(['status' => 'success', 'message' => 'Usuario deslogueado correctamente.'], 200);
         } catch (QueryException $qe) {
             return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);

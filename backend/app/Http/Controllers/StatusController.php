@@ -122,7 +122,7 @@ class StatusController extends Controller
         } catch (\Exception $e) {
             $errorCode = $e->errorInfo[1] ?? null;
             if ($errorCode === 1451 || $errorCode === 1217) {
-                return response()->json(['status' => 'error', 'message' => 'No se puede eliminar la tarea porque tiene registros asociados. Elimínalos primero.'], 409);
+                return response()->json(['status' => 'error', 'message' => 'No se puede eliminar el status porque tiene registros asociados. Elimínalos primero.'], 409);
             }
 
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);

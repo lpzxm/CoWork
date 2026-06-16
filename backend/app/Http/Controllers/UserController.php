@@ -170,14 +170,14 @@ class UserController extends Controller
         } catch (QueryException $qe) {
             $errorCode = $qe->errorInfo[1] ?? null;
             if ($errorCode === 1451 || $errorCode === 1217) {
-                return response()->json(['status' => 'error', 'message' => 'No se puede eliminar la tarea porque tiene registros asociados. Elimínalos primero.'], 409);
+                return response()->json(['status' => 'error', 'message' => 'No se puede eliminar el usuario porque tiene registros asociados. Elimínalos primero.'], 409);
             }
 
-            return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
+            return response()->json(['status' => 'error', 'message' => $qe->getMessage()], 400);
         } catch (\Exception $e) {
             $errorCode = $e->errorInfo[1] ?? null;
             if ($errorCode === 1451 || $errorCode === 1217) {
-                return response()->json(['status' => 'error', 'message' => 'No se puede eliminar la tarea porque tiene registros asociados. Elimínalos primero.'], 409);
+                return response()->json(['status' => 'error', 'message' => 'No se puede eliminar el usuario porque tiene registros asociados. Elimínalos primero.'], 409);
             }
 
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);

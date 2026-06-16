@@ -31,8 +31,11 @@ class TaskController extends Controller
 
         try {
             $tasksRaw = Task::with(['status', 'creator', 'acceptor', 'decliner', 'updater', 'coordinators', 'files']);
-            ($currentUser->hasRole(['super-admin', 'admin'])) ? $tasks = $tasksRaw->get() : $tasks = $tasksRaw->whereHas('coordinators', fn($q) => $q->where('user_id', $currentUser->id))->get();
-
+            if ($currentUser->hasRole(['super-admin', 'admin'])) {
+                $tasks = $tasksRaw->get();
+            } else {
+                $tasks = $tasksRaw->whereHas('coordinators', fn($q) => $q->where('user_id', $currentUser->id))->get();
+            }
             return TaskResource::collection($tasks);
         } catch (QueryException $qe) {
             return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
@@ -63,7 +66,7 @@ class TaskController extends Controller
             $task = Task::create([
                 'title' => $data->title,
                 'description' => $data->description,
-                'status_id' => $data->status_id ?? 1,
+                'status_id' => $data->status_id ?? Status::CREATED,
                 'dt_delivery_limit' => $data->dt_delivery_limit,
                 'created_by' => $currentUser->id,
             ]);
@@ -147,8 +150,6 @@ class TaskController extends Controller
                 'updated_by' => $currentUser->id,
             ]);
 
-            $task->load('status');
-
             // notificar cambio de estado
             if ($oldStatusId !== $task->status_id) {
                 $superAdmins = User::role('super-admin')->get();
@@ -220,7 +221,7 @@ class TaskController extends Controller
             if ($task->subtasks()->count() > 0) return response()->json(['status' => 'error', 'message' => 'No se puede eliminar la tarea porque tiene subtareas asociadas. Elimínalas primero.'], 409);
 
             if (in_array($task->status_id, [Status::IN_PROGRESS, Status::IN_REVIEW, Status::COMPLETED, Status::APPROVED])) return response()->json(['status' => 'error', 'message' => "No se puede eliminar ya que el estado: {$task->status->name}, no lo permite."], 409);
-            
+
             $coordinators = $task->coordinators;
             $task->coordinators()->detach();
             $task->delete();
@@ -253,10 +254,10 @@ class TaskController extends Controller
 
             if ($task->status_id !== Status::IN_PROGRESS) return response()->json(['status' => 'error', 'message' => 'La tarea no esta en progreso para ser revisada.'], 400);
 
-            $allCompleted = $task->subtasks()->where('status_id', '!=', 4)->count() === 0;
+            $allCompleted = $task->subtasks()->where('status_id', '!=', Status::COMPLETED)->count() === 0;
             if (!$allCompleted) return response()->json(['status' => 'error', 'message' => 'Todas las subtareas deben estar completadas.'], 400);
 
-            $task->status_id = 5;
+            $task->status_id = Status::IN_REVIEW;
             $task->updated_by = $currentUser->id;
             $task->save();
 
@@ -328,7 +329,7 @@ class TaskController extends Controller
 
             if ($task->status_id !== Status::IN_REVIEW) return response()->json(['status' => 'error', 'message' => 'La tarea no está en proceso de revisión.'], 400);
 
-            $task->status_id = $request->action === 'approved' ? 6 : 7;
+            $task->status_id = $request->action === 'approved' ? Status::APPROVED : Status::REJECTED;
             $task->updated_by = $currentUser->id;
             $task->save();
 
