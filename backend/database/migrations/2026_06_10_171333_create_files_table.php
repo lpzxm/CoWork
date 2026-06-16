@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('files', function (Blueprint $table) {
             $table->id();
             $table->foreignId('task_id')->constrained('tasks')->onDelete('cascade')->comment('FK de la task padre');
-            $table->foreignId('sub_task_id')->nullable()->constrained('sub_tasks')->onDelete('cascade')->comment('FK de la sub-tarea padre');
+            $table->foreignId('sub_task_id')->nullable()->constrained('sub_tasks')->restrictOnDelete()->comment('FK de la sub-tarea padre');
             $table->string('file_type')->comment('Tipo de archivo');
             $table->string('file_name')->comment('Nombre del archivo');
             $table->text('url')->comment('URL del archivo');

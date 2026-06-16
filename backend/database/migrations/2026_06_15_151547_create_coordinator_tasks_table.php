@@ -13,11 +13,12 @@ return new class extends Migration
     {
         Schema::create('coordinator_tasks', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade')->comment('FK del coordinador');
-            $table->foreignId('task_id')->references('id')->on('tasks')->onDelete('cascade')->comment('FK de la tarea');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade')->comment('FK del coordinador');
+            $table->foreignId('task_id')->constrained('tasks')->onDelete('cascade')->comment('FK de la tarea');
             $table->dateTime('assigned_at')->nullable()->comment('Fecha límite de entrega');
             $table->foreignId('assigned_by')->constrained('users')->onDelete('cascade')->comment('FK del administrador que asignó la tarea');
             $table->timestamps();
+            $table->unique(['user_id', 'task_id']);
         });
     }
 
