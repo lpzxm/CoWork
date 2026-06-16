@@ -12,6 +12,13 @@ use OwenIt\Auditing\Contracts\Auditable;
 #[Fillable(['name', 'color', 'active'])]
 class Status extends Model implements Auditable
 {
+    const CREATED = 1;
+    const PENDING = 2;
+    const IN_PROGRESS = 3;
+    const COMPLETED = 4;
+    const IN_REVIEW = 5;
+    const APPROVED = 6;
+    const REJECTED = 7;
     use \OwenIt\Auditing\Auditable;
 
 
