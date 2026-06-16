@@ -19,6 +19,7 @@ class Status extends Model implements Auditable
     const IN_REVIEW = 5;
     const APPROVED = 6;
     const REJECTED = 7;
+    
     use \OwenIt\Auditing\Auditable;
 
 

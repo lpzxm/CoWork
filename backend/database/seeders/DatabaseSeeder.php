@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Crypt;
 
 class DatabaseSeeder extends Seeder
@@ -19,7 +20,7 @@ class DatabaseSeeder extends Seeder
         $superAdmin = User::factory()->create([
             'name' => 'Super admin',
             'email' => 'superadmin123@cowork.com',
-            'password' => env('DF_SECRET_PS'), // llamado a clave por defecto desde .env
+            'password' => env('DF_SECRET_PS') ?? Hash::make('secret'), // llamado a clave por defecto desde .env
             'active' => true
         ]);
 

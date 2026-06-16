@@ -32,6 +32,10 @@ class TaskReviewRequestMail extends Mailable
             'rejected' => 'Revisión de tarea rechazada - CoWork',
         ];
 
+        if (!array_key_exists($this->action, $subject)) {
+            $this->action = 'requested';
+        }
+
         return new Envelope(
             subject: $subject[$this->action],
         );

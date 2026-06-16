@@ -9,7 +9,7 @@ use Illuminate\Validation\Rule;
 class FileData extends Data
 {
     public function __construct(
-        public ?int $task_id = null,
+        public int $task_id,
         public ?int $sub_task_id = null,
         public ?string $file_type = null,
         public ?string $file_name = null,
@@ -17,15 +17,34 @@ class FileData extends Data
         public ?int $uploaded_by = null,
     ) {}
 
-    public static function rules(): array
+    public static function rules(?int $fileId = null): array
     {
         return [
-            'task_id' => ['required', 'integer', Rule::exists('tasks', 'id')],
+            'task_id' => [
+                $fileId ? 'nullable' : 'required',
+                'integer',
+                Rule::exists('tasks', 'id'),
+            ],
             'sub_task_id' => ['nullable', 'integer', Rule::exists('sub_tasks', 'id')],
-            'file_type' => ['required', 'string', 'max:50'],
-            'file_name' => ['required', 'string', 'max:255'],
-            'url' => ['required', 'string'],
-            'uploaded_by' => ['required', 'integer', Rule::exists('users', 'id')],
+            'file_type' => [
+                $fileId ? 'nullable' : 'required',
+                'string',
+                'max:50',
+            ],
+            'file_name' => [
+                $fileId ? 'nullable' : 'required',
+                'string',
+                'max:255',
+            ],
+            'url' => [
+                $fileId ? 'nullable' : 'required',
+                'string',
+            ],
+            'uploaded_by' => [
+                $fileId ? 'nullable' : 'required',
+                'integer',
+                Rule::exists('users', 'id'),
+            ],
         ];
     }
 
@@ -46,8 +65,8 @@ class FileData extends Data
         ];
     }
 
-    public static function validateWithId(array $data, ?int $id = null): static
+    public static function validateWithId(array $data, ?int $fileId = null): static
     {
-        return static::from(Validator::validate($data, static::rules(), static::messages()));
+        return static::from(Validator::validate($data, static::rules($fileId), static::messages()));
     }
 }

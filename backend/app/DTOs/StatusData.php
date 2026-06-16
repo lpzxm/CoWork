@@ -24,7 +24,7 @@ class StatusData extends Data
                 'max:255',
                 Rule::unique('status', 'name')->ignore($statusId),
             ],
-            'color' => ['nullable', 'string', 'max:50', Rule::unique('status', 'color')->ignore($statusId)],
+            'color' => ['nullable', 'string', 'max:50'],
             'active' => ['nullable', 'boolean'],
         ];
     }

@@ -13,11 +13,11 @@ use Laravel\Passport\Contracts\OAuthenticatable;
 use Laravel\Passport\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 use OwenIt\Auditing\Contracts\Auditable;
 use \OwenIt\Auditing\Auditable as AuditableTrait;
+use OwenIt\Auditing\Models\Audit;
 
 #[Fillable(['name', 'email', 'password', 'active'])]
 #[Hidden(['password', 'remember_token'])]
@@ -44,6 +44,39 @@ class User extends Authenticatable implements OAuthenticatable, Auditable
             'password' => 'hashed',
             'active' => 'boolean',
         ];
+    }
+
+    public function auditLogin(): void
+    {
+        $this->logCustomAudit('login', ['action' => 'Usuario autenticado correctamente.']);
+    }
+
+    public function auditLogout(): void
+    {
+        $this->logCustomAudit('logout', ['action' => 'Sesión destruida por el usuario.']);
+    }
+
+    public function auditRequestToken(string $tokenType = 'auth_token'): void
+    {
+        $this->logCustomAudit('requestToken', ['token_type' => $tokenType]);
+    }
+
+    private function logCustomAudit(string $event, array $newValues = []): void
+    {
+        $request = request();
+
+        Audit::create([
+            'user_type'      => static::class,
+            'user_id'        => $this->id,
+            'event'          => $event, // 👈 'login', 'logout' o 'requestToken'
+            'auditable_type' => static::class,
+            'auditable_id'   => $this->id,
+            'old_values'     => [],
+            'new_values'     => $newValues,
+            'url'            => $request->fullUrl(),
+            'ip_address'     => $request->ip(),
+            'user_agent'     => $request->userAgent(),
+        ]);
     }
 
     public static function makeRandomPassword(): string

@@ -38,6 +38,10 @@ class TaskData extends Data
                 'string',
                 'max:5000',
             ],
+            'created_by' => ['nullable', 'integer', Rule::exists('users', 'id')],
+            'accepted_by' => ['nullable', 'integer', Rule::exists('users', 'id')],
+            'declined_by' => ['nullable', 'integer', Rule::exists('users', 'id')],
+            'updated_by' => ['nullable', 'integer', Rule::exists('users', 'id')],
             'status_id' => [
                 'nullable',
                 'integer',

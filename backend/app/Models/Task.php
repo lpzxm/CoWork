@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -47,14 +46,14 @@ class Task extends Model implements Auditable
     }
 
     public function coordinators() : BelongsToMany {
-        return $this->belongsToMany(User::class, 'coordinator_tasks')->withPivot('assigned_by')->withTimestamps();
+        return $this->belongsToMany(User::class, 'coordinator_tasks')->withPivot('assigned_by')->withPivot('assigned_at')->withTimestamps();
     }
 
     public function files() : HasMany {
         return $this->hasMany(File::class);
     }
 
-    public function status()
+    public function status() : BelongsTo
     {
         return $this->belongsTo(Status::class);
     }

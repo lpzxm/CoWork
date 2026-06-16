@@ -10,12 +10,12 @@ class StatusSeeder extends Seeder
     public function run(): void
     { 
         // Creacion de multiples estados para las tasks y subtasks
-        Status::create(['name' => 'Creado', 'active' => true]);
-        Status::create(['name' => 'Pendiente', 'active' => true]);
-        Status::create(['name' => 'En Progreso', 'active' => true]);
-        Status::create(['name' => 'Completado', 'active' => true]);
-        Status::create(['name' => 'En Revisión', 'active' => true]);
-        Status::create(['name' => 'Aprobado', 'active' => true]);
-        Status::create(['name' => 'Rechazado', 'active' => true]);
+        Status::create(['name' => 'Creado','color' => '#00000', 'active' => true]);
+        Status::create(['name' => 'Pendiente','color' => '#00000', 'active' => true]);
+        Status::create(['name' => 'En Progreso','color' => '#00000', 'active' => true]);
+        Status::create(['name' => 'Completado','color' => '#00000', 'active' => true]);
+        Status::create(['name' => 'En Revisión','color' => '#00000', 'active' => true]);
+        Status::create(['name' => 'Aprobado','color' => '#00000', 'active' => true]);
+        Status::create(['name' => 'Rechazado','color' => '#00000', 'active' => true]);
     }
 }

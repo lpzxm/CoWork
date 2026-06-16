@@ -13,6 +13,12 @@ class SubTaskData extends Data
     public function __construct(
         public string $title,
         public ?string $description  = null,
+        public ?int $created_by = null,
+        public ?int $accepted_by = null,
+        public ?int $declined_by = null,
+        public ?int $updated_by = null,
+        public ?int $deleted_by = null,
+        public ?int $task_id = null,
         public ?int $status_id = null,
         public ?Carbon $dt_delivery_limit = null,
     ) {}
@@ -31,10 +37,20 @@ class SubTaskData extends Data
                 'string',
                 'max:5000',
             ],
+            'created_by' => ['nullable', 'integer', Rule::exists('users', 'id')],
+            'accepted_by' => ['nullable', 'integer', Rule::exists('users', 'id')],
+            'declined_by' => ['nullable', 'integer', Rule::exists('users', 'id')],
+            'updated_by' => ['nullable', 'integer', Rule::exists('users', 'id')],
+            'deleted_by' => ['nullable', 'integer', Rule::exists('users', 'id')],
             'status_id' => [
                 'nullable',
                 'integer',
                 Rule::exists('status', 'id'),
+            ],
+            'task_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('tasks', 'id'),
             ],
             'dt_delivery_limit' => ['nullable', 'date'],
         ];
@@ -47,6 +63,12 @@ class SubTaskData extends Data
             'title.string' => 'El titulo debe ser un texto válido.',
             'title.max' => 'El titulo debe tener menos de 255 caracteres.',
             'description.string' => 'La descripcion debe ser un texto valido.',
+            'created_by.exists' => 'El creador no existe.',
+            'accepted_by.exists' => 'El aceptador no existe.',
+            'declined_by.exists' => 'El rechazador no existe.',
+            'updated_by.exists' => 'El actualizador no existe.',
+            'deleted_by.exists' => 'El eliminador no existe.',
+            'task_id.exists' => 'La tarea no existe.',
             'status_id.exists' => 'El status no existe.',
             'dt_delivery_limit.date' => 'La fecha de entrega debe ser una fecha valida.',
         ];
