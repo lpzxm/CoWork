@@ -23,6 +23,16 @@ class SubTaskResource extends JsonResource
                 'id' => $this->status_id,
                 'name' => $this->status->name ?? null,
             ],
+            'files' => $this->relationLoaded('files')
+                ? $this->files->map(fn($file) => [
+                    'id' => $file->id,
+                    'name' => $file->file_name,
+                    'path' => $file->url,
+                    'type' => $file->file_type,
+                    'uploaded_by' => $file->uploader ? ['id' => $file->uploader->id, 'name' => $file->uploader->name] : null,
+                    'created_at' => $file->created_at,
+                ])
+                : null,
             'dt_delivery_limit' => $this->dt_delivery_limit,
             'created_by' => $this->creator ? ['id' => $this->creator->id, 'name' => $this->creator->name] : null,
             'accepted_by' => $this->acceptor ? ['id' => $this->acceptor->id, 'name' => $this->acceptor->name] : null,

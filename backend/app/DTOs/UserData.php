@@ -4,6 +4,7 @@ namespace App\DTOs;
 
 use Spatie\LaravelData\Data;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Validator;
 
 class UserData extends Data
 {
@@ -33,8 +34,8 @@ class UserData extends Data
                 Rule::unique('users', 'email')->ignore($userId),
             ],
             'password' => $userId
-                ? ['nullable', 'string', 'min:8', 'regex:/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&]).{8,}$/']
-                : ['required', 'string', 'min:8', 'regex:/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[@$!%*?&]).{8,}$/'],
+                ? ['nullable', 'string', 'min:8', 'regex:/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{8,}$/']
+                : ['required', 'string', 'min:8', 'regex:/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{8,}$/'],
             'active' => ['nullable', 'boolean'],
             'role' => ['nullable', 'string', Rule::exists('roles', 'name')],
         ];
@@ -54,5 +55,10 @@ class UserData extends Data
             'role.string' => 'El rol debe ser un texto válido.',
             'role.exists' => 'El rol especificado no existe.',
         ];
+    }
+
+    public static function validateWithId(array $data, ?int $id = null): static
+    {
+        return static::from(Validator::validate($data, static::rules($id), static::messages()));
     }
 }

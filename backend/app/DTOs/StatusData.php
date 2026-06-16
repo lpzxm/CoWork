@@ -4,6 +4,7 @@ namespace App\DTOs;
 
 use Spatie\LaravelData\Data;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Validator;
 
 class StatusData extends Data
 {
@@ -35,6 +36,12 @@ class StatusData extends Data
             'name.unique' => 'El estado ya está registrado.',
             'color.string' => 'El color debe ser un texto valido.',
             'color.unique' => 'El color ya está registrado.',
-            'active.boolean' => 'El estado debe ser activo o inactivo.',];
+            'active.boolean' => 'El estado debe ser activo o inactivo.',
+        ];
+    }
+
+    public static function validateWithId(array $data, ?int $id = null): static
+    {
+        return static::from(Validator::validate($data, static::rules($id), static::messages()));
     }
 }

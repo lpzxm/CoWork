@@ -4,6 +4,7 @@ namespace App\DTOs;
 
 use Spatie\LaravelData\Data;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 
 class SubTaskData extends Data
@@ -49,5 +50,10 @@ class SubTaskData extends Data
             'status_id.exists' => 'El status no existe.',
             'dt_delivery_limit.date' => 'La fecha de entrega debe ser una fecha valida.',
         ];
+    }
+
+    public static function validateWithId(array $data, ?int $id = null): static
+    {
+        return static::from(Validator::validate($data, static::rules($id), static::messages()));
     }
 }
