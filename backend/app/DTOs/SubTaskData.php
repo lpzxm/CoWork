@@ -74,8 +74,8 @@ class SubTaskData extends Data
         ];
     }
 
-    public static function validateWithId(array $data, ?int $id = null): static
+    public static function validateWithId(array $data, ?int $subTaskId = null): static
     {
-        return static::from(Validator::validate($data, static::rules($id), static::messages()));
+        return static::from(Validator::validate($data, static::rules($subTaskId), static::messages()));
     }
 }

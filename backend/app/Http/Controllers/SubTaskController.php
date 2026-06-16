@@ -106,7 +106,7 @@ class SubTaskController extends Controller
         $currentUser = auth()->user();
 
         try {
-            $subTask = SubTask::with(['task', 'status', 'creator', 'files'])->find($id);
+            $subTask = SubTask::with(['task', 'status', 'creator', 'acceptor', 'decliner', 'updater', 'files'])->find($id);
             if (!$subTask) return response()->json(['status' => 'error', 'message' => 'Subtarea no encontrada.'], 404);
 
             if (!$currentUser->hasRole(['super-admin', 'admin']) && !$subTask->task->coordinators->contains('id', $currentUser->id)) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
