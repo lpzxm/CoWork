@@ -1,0 +1,17 @@
+$kind: http-request
+name: Update SubTask
+method: PUT
+url: '{{base_url}}/subtasks/{{subtask_id}}'
+order: 4000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Updated SubTask",
+      "description": "Updated description",
+      "status_id": 2,
+      "dt_delivery_limit": "2026-12-31"
+    }

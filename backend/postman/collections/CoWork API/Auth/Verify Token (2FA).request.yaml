@@ -1,0 +1,15 @@
+$kind: http-request
+name: 'Verify Token (2FA)'
+method: POST
+url: '{{base_url}}/verify-token'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "admin@example.com",
+      "code": "123456"
+    }

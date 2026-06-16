@@ -1,0 +1,18 @@
+$kind: http-request
+name: Upload File
+method: POST
+url: '{{base_url}}/files'
+order: 1000
+body:
+  type: formdata
+  content:
+    - key: file
+      type: file
+      src: ''
+      description: The file to upload
+    - key: task_id
+      type: text
+      value: '{{task_id}}'
+    - key: sub_task_id
+      type: text
+      value: '{{subtask_id}}'

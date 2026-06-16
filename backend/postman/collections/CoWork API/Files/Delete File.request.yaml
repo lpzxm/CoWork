@@ -1,0 +1,5 @@
+$kind: http-request
+name: Delete File
+method: DELETE
+url: '{{base_url}}/files/{{file_id}}'
+order: 3000

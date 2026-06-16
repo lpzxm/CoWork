@@ -1,0 +1,5 @@
+$kind: http-request
+name: List Statuses
+method: GET
+url: '{{base_url}}/status'
+order: 1000

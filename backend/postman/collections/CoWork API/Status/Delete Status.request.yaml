@@ -1,0 +1,5 @@
+$kind: http-request
+name: Delete Status
+method: DELETE
+url: '{{base_url}}/status/{{status_id}}'
+order: 5000

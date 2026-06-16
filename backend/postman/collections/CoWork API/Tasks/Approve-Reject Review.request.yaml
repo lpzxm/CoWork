@@ -1,0 +1,14 @@
+$kind: http-request
+name: 'Approve/Reject Review'
+method: PATCH
+url: '{{base_url}}/tasks/{{task_id}}/review'
+order: 7000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "action": "approved"
+    }

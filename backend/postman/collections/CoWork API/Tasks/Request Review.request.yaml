@@ -1,0 +1,5 @@
+$kind: http-request
+name: Request Review
+method: PATCH
+url: '{{base_url}}/tasks/{{task_id}}/request-review'
+order: 6000

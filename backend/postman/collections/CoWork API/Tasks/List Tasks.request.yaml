@@ -1,0 +1,5 @@
+$kind: http-request
+name: List Tasks
+method: GET
+url: '{{base_url}}/tasks'
+order: 1000

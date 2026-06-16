@@ -1,0 +1,16 @@
+$kind: http-request
+name: Create Status
+method: POST
+url: '{{base_url}}/status'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "In Progress",
+      "color": "#FFA500",
+      "active": true
+    }

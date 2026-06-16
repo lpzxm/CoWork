@@ -1,0 +1,16 @@
+$kind: http-request
+name: Update Status
+method: PUT
+url: '{{base_url}}/status/{{status_id}}'
+order: 4000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "In Progress Updated",
+      "color": "#FF8C00",
+      "active": true
+    }

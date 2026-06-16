@@ -1,0 +1,22 @@
+$kind: collection
+name: CoWork API
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{auth_token}}'
+variables:
+  - key: base_url
+    value: 'http://localhost:8000/api'
+  - key: auth_token
+    value: ''
+  - key: user_id
+    value: '1'
+  - key: task_id
+    value: '1'
+  - key: subtask_id
+    value: '1'
+  - key: status_id
+    value: '1'
+  - key: file_id
+    value: '1'

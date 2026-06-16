@@ -1,0 +1,5 @@
+$kind: http-request
+name: Get Authenticated User
+method: GET
+url: '{{base_url}}/user'
+order: 3000

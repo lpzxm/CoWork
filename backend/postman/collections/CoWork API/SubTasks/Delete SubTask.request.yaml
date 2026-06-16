@@ -1,0 +1,5 @@
+$kind: http-request
+name: Delete SubTask
+method: DELETE
+url: '{{base_url}}/subtasks/{{subtask_id}}'
+order: 5000

@@ -1,0 +1,17 @@
+$kind: http-request
+name: Create SubTask
+method: POST
+url: '{{base_url}}/tasks/{{task_id}}/subtasks'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "New SubTask",
+      "description": "SubTask description",
+      "status_id": 1,
+      "dt_delivery_limit": "2026-12-31"
+    }
