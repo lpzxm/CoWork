@@ -8,46 +8,36 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Mail\Mailables\Content;
 
-class TaskReviewRequestMail extends Mailable
+class TaskStatusChangedMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    /**
-     * Create a new message instance.
-     *
-     * @return void
-     */
     public function __construct(
-        public $requester,
         public $recipient,
         public $task,
-        public string $action
+        public $changedBy,
+        public string $oldStatus,
+        public string $newStatus,
     ) {}
 
     public function envelope(): Envelope
     {
-        $subject = [
-            'requested' => 'Solicitud de revisión de tarea - CoWork',
-            'approved' => 'Revisión de tarea aprobada - CoWork',
-            'rejected' => 'Revisión de tarea rechazada - CoWork',
-        ];
-
         return new Envelope(
-            subject: $subject[$this->action],
+            subject: "Estado de tarea actualizado - {$this->task->title} - CoWork",
         );
     }
 
     public function content(): Content
     {
         return new Content(
-            view: 'mail.task.task-review-request',
+            view: 'mail.task.status-changed',
             with: [
-                'requester' => $this->requester,
                 'recipient' => $this->recipient,
                 'task' => $this->task,
-                'action' => $this->action
+                'changedBy' => $this->changedBy,
+                'oldStatus' => $this->oldStatus,
+                'newStatus' => $this->newStatus,
             ],
         );
     }
-
 }
