@@ -20,6 +20,7 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'active' => (bool) $this->active,
             'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
             'roles' => $this->getRoleNames(),
         ];
     }

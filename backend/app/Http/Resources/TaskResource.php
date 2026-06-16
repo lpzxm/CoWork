@@ -41,7 +41,7 @@ class TaskResource extends JsonResource
             'accepted_by' => $this->acceptor ? ['id' => $this->acceptor->id, 'name' => $this->acceptor->name] : null,
             'declined_by' => $this->decliner ? ['id' => $this->decliner->id, 'name' => $this->decliner->name] : null,
             'updated_by' => $this->updater ? ['id' => $this->updater->id, 'name' => $this->updater->name] : null,
-            'coordinatorsAssigned' => $this->relationLoaded('coordinators')
+            'coordinators_assigned' => $this->relationLoaded('coordinators')
                 ? $this->coordinators->map(fn($user) => [
                     'id' => $user->id,
                     'name' => $user->name,

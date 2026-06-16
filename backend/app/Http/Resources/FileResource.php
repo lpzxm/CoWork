@@ -13,7 +13,7 @@ class FileResource extends JsonResource
             'id' => $this->id,
             'task_id' => $this->task_id,
             'sub_task_id' => $this->sub_task_id,
-            'name' => $this->file_name,
+            'file_name' => $this->file_name,
             'path' => $this->url,
             'type' => $this->file_type,
             'uploaded_by' => $this->uploader ? [
