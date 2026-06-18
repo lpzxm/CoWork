@@ -2,23 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-use \Illuminate\Support\Collection;
-use Illuminate\Validation\ValidationException;
-use Illuminate\Database\QueryException;
-
-use App\Models\Task;
-use App\Models\User;
-use App\Models\Status;
 use App\DTOs\TaskData;
 use App\Http\Resources\TaskResource;
-
-// envio de correos a usuarios por tareas asignadas y desasignadas
-use Illuminate\Support\Facades\Mail;
 use App\Mail\Task\TaskAssignmentMail;
 use App\Mail\Task\TaskReviewRequestMail;
 use App\Mail\Task\TaskStatusChangedMail;
+use App\Models\Status;
+use App\Models\Task;
+use App\Models\User;
+use Illuminate\Database\QueryException;
+// envio de correos a usuarios por tareas asignadas y desasignadas
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 
 class TaskController extends Controller
 {
@@ -34,8 +31,9 @@ class TaskController extends Controller
             if ($currentUser->hasRole(['super-admin', 'admin'])) {
                 $tasks = $tasksRaw->get();
             } else {
-                $tasks = $tasksRaw->whereHas('coordinators', fn($q) => $q->where('user_id', $currentUser->id))->get();
+                $tasks = $tasksRaw->whereHas('coordinators', fn ($q) => $q->where('user_id', $currentUser->id))->get();
             }
+
             return TaskResource::collection($tasks);
         } catch (QueryException $qe) {
             return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
@@ -50,7 +48,9 @@ class TaskController extends Controller
     public function store(Request $request)
     {
         $currentUser = auth()->user();
-        if (!$currentUser->hasRole(['super-admin', 'admin'])) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
+        if (! $currentUser->hasRole(['super-admin', 'admin'])) {
+            return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
+        }
 
         try {
             $request->merge(['created_by' => $currentUser->id]);
@@ -58,7 +58,7 @@ class TaskController extends Controller
 
             $hasCoordinators = $request->has('coordinators_ids');
             $ids = $hasCoordinators
-                ? collect((array) $request->input('coordinators_ids'))->filter()->map(fn($v) => (int) $v)->values()
+                ? collect((array) $request->input('coordinators_ids'))->filter()->map(fn ($v) => (int) $v)->values()
                 : collect();
 
             $this->validateCoordinators($ids);
@@ -74,12 +74,12 @@ class TaskController extends Controller
             if ($hasCoordinators) {
 
                 $coordinatorsIds = $task->coordinators()->sync(
-                    $ids->mapWithKeys(fn($id) => [
-                        $id => ['assigned_by' => $currentUser->id, 'assigned_at' => now()]
+                    $ids->mapWithKeys(fn ($id) => [
+                        $id => ['assigned_by' => $currentUser->id, 'assigned_at' => now()],
                     ])
                 );
 
-                if (!empty($coordinatorsIds['attached'])) {
+                if (! empty($coordinatorsIds['attached'])) {
                     $users = User::whereIn('id', $coordinatorsIds['attached'])->get();
 
                     foreach ($users as $user) {
@@ -89,6 +89,7 @@ class TaskController extends Controller
             }
 
             $task->load(['status', 'creator', 'coordinators', 'files']);
+
             return response()->json(['status' => 'success', 'message' => 'Tarea creada correctamente.', 'data' => new TaskResource($task)], 200);
         } catch (ValidationException $ve) {
             return response()->json(['status' => 'error', 'message' => 'Datos inválidos.', 'errors' => $ve->errors()], 400);
@@ -107,11 +108,14 @@ class TaskController extends Controller
         try {
             $currentUser = auth()->user();
             $task = Task::with(['status', 'creator', 'acceptor', 'decliner', 'updater', 'coordinators', 'files'])->find($id);
-            if (!$task) return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
+            if (! $task) {
+                return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
+            }
 
-            if (!$currentUser->hasRole(['super-admin', 'admin']) && !$task->coordinators->contains('id', $currentUser->id)) {
+            if (! $currentUser->hasRole(['super-admin', 'admin']) && ! $task->coordinators->contains('id', $currentUser->id)) {
                 return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
             }
+
             return new TaskResource($task);
         } catch (QueryException $qe) {
             return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
@@ -126,11 +130,15 @@ class TaskController extends Controller
     public function update(Request $request, int $id)
     {
         $currentUser = auth()->user();
-        if (!$currentUser->hasRole(['super-admin', 'admin'])) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
+        if (! $currentUser->hasRole(['super-admin', 'admin'])) {
+            return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
+        }
 
         try {
             $task = Task::with(['status', 'creator', 'acceptor', 'decliner', 'updater', 'coordinators'])->find($id);
-            if (!$task) return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
+            if (! $task) {
+                return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
+            }
 
             $oldStatusId = $task->status_id;
             $oldStatusName = $task->status?->name;
@@ -138,7 +146,7 @@ class TaskController extends Controller
             $data = TaskData::validateWithId($request->all(), $task->id);
 
             $hasCoordinators = $request->has('coordinators_ids');
-            $ids = $hasCoordinators ? collect((array) $request->input('coordinators_ids'))->filter()->map(fn($v) => (int) $v)->values() : collect();
+            $ids = $hasCoordinators ? collect((array) $request->input('coordinators_ids'))->filter()->map(fn ($v) => (int) $v)->values() : collect();
 
             $this->validateCoordinators($ids);
 
@@ -159,7 +167,9 @@ class TaskController extends Controller
                 $coordinators = $task->coordinators;
 
                 $recipients = collect();
-                if ($creator) $recipients->push($creator);
+                if ($creator) {
+                    $recipients->push($creator);
+                }
                 $recipients = $recipients->concat($superAdmins)->concat($coordinators)->unique('id');
 
                 foreach ($recipients as $recipient) {
@@ -175,12 +185,12 @@ class TaskController extends Controller
 
             if ($hasCoordinators) {
                 $coordinatorsIds = $task->coordinators()->sync(
-                    $ids->mapWithKeys(fn($id) => [
-                        $id => ['assigned_by' => $currentUser->id, 'assigned_at' => now()]
+                    $ids->mapWithKeys(fn ($id) => [
+                        $id => ['assigned_by' => $currentUser->id, 'assigned_at' => now()],
                     ])
                 );
 
-                if (!empty($coordinatorsIds['attached'])) {
+                if (! empty($coordinatorsIds['attached'])) {
                     $users = User::whereIn('id', $coordinatorsIds['attached'])->get();
 
                     foreach ($users as $user) {
@@ -188,7 +198,7 @@ class TaskController extends Controller
                     }
                 }
 
-                if (!empty($coordinatorsIds['detached'])) {
+                if (! empty($coordinatorsIds['detached'])) {
                     $users = User::whereIn('id', $coordinatorsIds['detached'])->get();
 
                     foreach ($users as $user) {
@@ -198,6 +208,7 @@ class TaskController extends Controller
             }
 
             $task->load(['status', 'creator', 'coordinators', 'files']);
+
             return response()->json(['status' => 'success', 'message' => 'Tarea actualizada correctamente.', 'data' => new TaskResource($task)], 200);
         } catch (ValidationException $ve) {
             return response()->json(['status' => 'error', 'message' => 'Datos inválidos.', 'errors' => $ve->errors()], 400);
@@ -214,15 +225,23 @@ class TaskController extends Controller
     public function destroy(int $id)
     {
         $currentUser = auth()->user();
-        if (!$currentUser->hasRole(['super-admin', 'admin'])) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
+        if (! $currentUser->hasRole(['super-admin', 'admin'])) {
+            return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
+        }
 
         try {
             $task = Task::find($id);
-            if (!$task) return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
+            if (! $task) {
+                return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
+            }
 
-            if ($task->subtasks()->count() > 0) return response()->json(['status' => 'error', 'message' => 'No se puede eliminar la tarea porque tiene subtareas asociadas. Elimínalas primero.'], 409);
+            if ($task->subtasks()->count() > 0) {
+                return response()->json(['status' => 'error', 'message' => 'No se puede eliminar la tarea porque tiene subtareas asociadas. Elimínalas primero.'], 409);
+            }
 
-            if (in_array($task->status_id, [Status::IN_PROGRESS, Status::IN_REVIEW, Status::COMPLETED, Status::APPROVED])) return response()->json(['status' => 'error', 'message' => "No se puede eliminar ya que el estado: {$task->status->name}, no lo permite."], 409);
+            if (in_array($task->status_id, [Status::IN_PROGRESS, Status::IN_REVIEW, Status::COMPLETED, Status::APPROVED])) {
+                return response()->json(['status' => 'error', 'message' => "No se puede eliminar ya que el estado: {$task->status->name}, no lo permite."], 409);
+            }
 
             $coordinators = $task->coordinators;
             $task->coordinators()->detach();
@@ -238,6 +257,7 @@ class TaskController extends Controller
             if ($errorCode === 1451 || $errorCode === 1217) {
                 return response()->json(['status' => 'error', 'message' => 'No se puede eliminar la tarea porque tiene registros asociados. Elimínalos primero.'], 409);
             }
+
             return response()->json(['status' => 'error', 'message' => 'Error al eliminar la tarea.'], 400);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => 'Error al eliminar la tarea.'], 400);
@@ -250,20 +270,26 @@ class TaskController extends Controller
 
         try {
             $task = Task::find($id);
-            if (!$task) return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
+            if (! $task) {
+                return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
+            }
 
-            if (!$currentUser->hasRole(['super-admin', 'admin']) && !$task->coordinators()->where('user_id', $currentUser->id)->exists()) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
+            if (! $currentUser->hasRole(['super-admin', 'admin']) && ! $task->coordinators()->where('user_id', $currentUser->id)->exists()) {
+                return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
+            }
 
             // if ($task->status_id !== Status::COMPLETED) return response()->json(['status' => 'error', 'message' => 'La tarea debe estar completada para solicitar revisión.'], 400);
 
             $allCompleted = $task->subtasks()->where('status_id', '!=', Status::COMPLETED)->count() === 0;
-            if (!$allCompleted) return response()->json(['status' => 'error', 'message' => 'Todas las subtareas deben estar completadas.'], 400);
+            if (! $allCompleted) {
+                return response()->json(['status' => 'error', 'message' => 'Todas las subtareas deben estar completadas.'], 400);
+            }
 
             $task->status_id = Status::IN_REVIEW;
             $task->updated_by = $currentUser->id;
             $task->save();
 
-            $task->load(['status', 'creator']);
+            $task->load(['status', 'creator', 'coordinators', 'files']);
 
             // notificar a super-admins, admin que asignó y coordinadores asignados
             $superAdmins = User::role('super-admin')->get();
@@ -281,7 +307,7 @@ class TaskController extends Controller
                 ));
             }
 
-            return response()->json(['status' => 'success', 'message' => 'Solicitud de revisión enviada correctamente.'], 200);
+            return response()->json(['status' => 'success', 'message' => 'Solicitud de revisión enviada correctamente.', 'data' => new TaskResource($task)], 200);
         } catch (QueryException $qe) {
             return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
         } catch (\Exception $e) {
@@ -291,7 +317,9 @@ class TaskController extends Controller
 
     private function validateCoordinators(Collection $ids): void
     {
-        if ($ids->isEmpty()) return;
+        if ($ids->isEmpty()) {
+            return;
+        }
 
         $users = User::whereIn('id', $ids)->get();
 
@@ -299,21 +327,21 @@ class TaskController extends Controller
         $notFound = $ids->diff($existingIds);
         if ($notFound->isNotEmpty()) {
             throw ValidationException::withMessages([
-                'coordinators_ids' => 'Algunos de los coordinadores no fueron encontrados, intenta de nuevo. '
+                'coordinators_ids' => 'Algunos de los coordinadores no fueron encontrados, intenta de nuevo. ',
             ]);
         }
 
         $inactive = $users->where('active', false)->pluck('id');
         if ($inactive->isNotEmpty()) {
             throw ValidationException::withMessages([
-                'coordinators_ids' => 'El o los coordinadores están inactivos.'
+                'coordinators_ids' => 'El o los coordinadores están inactivos.',
             ]);
         }
 
-        $noRole = $users->reject(fn($u) => $u->hasRole('coordinador'))->pluck('id');
+        $noRole = $users->reject(fn ($u) => $u->hasRole('coordinador'))->pluck('id');
         if ($noRole->isNotEmpty()) {
             throw ValidationException::withMessages([
-                'coordinators_ids' => 'Los siguientes usuarios no tienen el rol de coordinador.'
+                'coordinators_ids' => 'Los siguientes usuarios no tienen el rol de coordinador.',
             ]);
         }
     }
@@ -321,7 +349,9 @@ class TaskController extends Controller
     public function approveReview(Request $request, int $id)
     {
         $currentUser = auth()->user();
-        if (!$currentUser->hasRole(['super-admin', 'admin'])) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
+        if (! $currentUser->hasRole(['super-admin', 'admin'])) {
+            return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
+        }
 
         try {
             $request->validate([
@@ -330,9 +360,13 @@ class TaskController extends Controller
             ]);
 
             $task = Task::with('status')->find($id);
-            if (!$task) return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
+            if (! $task) {
+                return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
+            }
 
-            if ($task->status_id !== Status::IN_REVIEW) return response()->json(['status' => 'error', 'message' => 'La tarea no está en proceso de revisión.'], 400);
+            if ($task->status_id !== Status::IN_REVIEW) {
+                return response()->json(['status' => 'error', 'message' => 'La tarea no está en proceso de revisión.'], 400);
+            }
 
             $task->status_id = $request->action === 'approved' ? Status::APPROVED : Status::REJECTED;
             if ($request->action === 'approved') {
@@ -345,7 +379,7 @@ class TaskController extends Controller
                 $task->observations = $request->observation;
             }
             $task->save();
-            $task->load('status');
+            $task->load(['status', 'creator', 'coordinators', 'files']);
 
             // notificar a super-admins y coordinadores asignados
             $superAdmins = User::role('super-admin')->get();
@@ -362,7 +396,8 @@ class TaskController extends Controller
             }
 
             $mensaje = $request->action === 'approved' ? 'Revisión aprobada correctamente.' : 'Revisión rechazada correctamente.';
-            return response()->json(['status' => 'success', 'message' => $mensaje], 200);
+
+            return response()->json(['status' => 'success', 'message' => $mensaje, 'data' => new TaskResource($task)], 200);
         } catch (QueryException $qe) {
             return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
         } catch (\Exception $e) {
