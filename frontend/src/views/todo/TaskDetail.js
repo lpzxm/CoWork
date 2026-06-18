@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo, useState, memo } from 'react'
+import React, { useEffect, useCallback, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import dayjs from 'dayjs'
@@ -10,7 +10,6 @@ import {
 } from 'store/base/commonSlice'
 import { Button } from 'components/custom'
 import {
-    Drawer, Input, Select, DatePicker, FormItem, FormContainer,
     Notification, toast,
 } from 'components/ui'
 import Tag from 'components/ui/Tag'
@@ -18,10 +17,9 @@ import ConfirmDialog from 'components/custom/ConfirmDialog'
 import Progress from 'components/ui/Progress'
 
 import {
-    HiArrowLeft, HiPaperClip, HiTrash, HiPlusCircle, HiPencil,
-    HiCheck, HiX, HiUpload, HiDownload, HiClock, HiEye,
+    HiArrowLeft, HiPaperClip, HiPlusCircle,
+    HiCheck, HiX,
 } from 'react-icons/hi'
-import { Field, Form, Formik } from 'formik'
 import * as Yup from 'yup'
 import {
     apiGetTask,
@@ -34,6 +32,11 @@ import {
 } from 'services/TodoService'
 import { apiGetStatuses } from 'services/StatusService'
 import { apiUploadFile, apiDeleteFile, apiDownloadFile } from 'services/FileService'
+import SubtaskCard from './components/SubtaskCard'
+import SubtaskFormDrawer from './components/SubtaskFormDrawer'
+import ReviewConfirmDialog from './components/ReviewConfirmDialog'
+import TaskInfoCard from './components/TaskInfoCard'
+import TaskFilesSection from './components/TaskFilesSection'
 
 const subtaskValidationSchema = Yup.object().shape({
     title: Yup.string().trim().required('El título es obligatorio.'),
@@ -52,61 +55,6 @@ const normalizeSubtask = (st) => ({
     dt_delivery_limit: st.dt_delivery_limit || '',
     files: st.files || [],
     created_by: st.created_by || null,
-})
-
-const SubtaskCard = memo(({ st, statusColorMap, openEditSubtask, onDelete, onDownloadFile, onPreviewFile, onDeleteFile, formatDate, canEdit = true }) => {
-    const overdue = st.dt_delivery_limit && dayjs(st.dt_delivery_limit).isBefore(dayjs(), 'day') && st.status_id !== 4 && st.status_id !== 6 && st.status_id !== 7
-    const dueToday = st.dt_delivery_limit && dayjs(st.dt_delivery_limit).isSame(dayjs(), 'day') && st.status_id !== 4 && st.status_id !== 6 && st.status_id !== 7
-    const color = statusColorMap[st.status_id] || '#64748B'
-    return (
-        <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-all hover:shadow-md dark:border-slate-700 dark:bg-slate-800">
-            <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                        <h5 className="font-medium text-slate-800 dark:text-slate-100 truncate">{st.title}</h5>
-                    </div>
-                    {st.description && (
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">{st.description}</p>
-                    )}
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                    {canEdit && (
-                        <Button size="xs" variant="solid" onClick={() => openEditSubtask(st)} icon={<HiPencil />} />
-                    )}
-                    <Button size="xs" variant="solid" color="danger" onClick={() => onDelete(st.id)} icon={<HiTrash />} />
-                </div>
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
-                <Tag prefix={<span className="tag-affix tag-prefix" style={{ backgroundColor: color }} />} className="!text-xs">
-                    {st.status_name || '-'}
-                </Tag>
-                {st.dt_delivery_limit && (
-                    <span className={`flex items-center gap-1 ${overdue ? 'text-red-500 font-semibold' : dueToday ? 'text-amber-500 font-semibold' : 'text-slate-400'}`}>
-                        <HiClock className="text-xs" />
-                        {formatDate(st.dt_delivery_limit)}
-                        {overdue && ' (Vencida)'}
-                        {dueToday && ' (Hoy)'}
-                    </span>
-                )}
-            </div>
-            {(st.files || []).length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                    {(st.files || []).map((f) => (
-                        <div key={f.id} className="inline-flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-700 rounded-md px-2 py-1">
-                            <HiPaperClip className="text-slate-400 flex-shrink-0" />
-                            <span className="truncate max-w-[120px]">{f.name}</span>
-                            <div className="flex items-center gap-0.5 ml-1">
-                                <button type="button" onClick={() => onPreviewFile(f.id, f.name)} className="text-blue-500 hover:text-blue-700 p-0.5" title="Vista previa"><HiEye className="text-xs" /></button>
-                                <button type="button" onClick={() => onDownloadFile(f.id, f.name)} className="text-blue-500 hover:text-blue-700 p-0.5" title="Descargar"><HiDownload className="text-xs" /></button>
-                                <button type="button" onClick={() => onDeleteFile(st.id, f.id)} className="text-red-400 hover:text-red-600 p-0.5" title="Eliminar"><HiTrash className="text-xs" /></button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
-    )
 })
 
 const TaskDetail = () => {
@@ -557,134 +505,19 @@ const TaskDetail = () => {
                 </div>
             </div>
 
-            <div className="rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800">
-                <div className="mb-5 flex items-start justify-between">
-                    <div className="flex-1 min-w-0 mr-4">
-                        <h4 className="text-xl font-semibold mb-1">{task.title}</h4>
-                        {task.description && (
-                            <p className="text-sm text-slate-500 dark:text-slate-400">{task.description}</p>
-                        )}
-                    </div>
-                    <Tag
-                        prefix={
-                            <span
-                                className="tag-affix tag-prefix"
-                                style={{ backgroundColor: statusColorMap[task.status?.id] || '#64748B' }}
-                            />
-                        }
-                    >
-                        {task.status?.name || '-'}
-                    </Tag>
-                </div>
+            <TaskInfoCard task={task} statusColorMap={statusColorMap} formatDate={formatDate} />
 
-                <div className="grid grid-cols-3 gap-5 text-sm border-t border-slate-100 dark:border-slate-700 pt-5">
-                    <div>
-                        <span className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Creada por</span>
-                        <span className="text-slate-700 dark:text-slate-200">{task.created_by?.name || '-'}</span>
-                    </div>
-                    <div>
-                        <span className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Vencimiento</span>
-                        <span className="text-slate-700 dark:text-slate-200">{formatDate(task.dt_delivery_limit)}</span>
-                    </div>
-                    <div>
-                        <span className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Coordinadores</span>
-                        {task.coordinators_assigned?.length > 0 ? (
-                            <span className="text-slate-700 dark:text-slate-200">
-                                {task.coordinators_assigned.map((c) => c.name).join(', ')}
-                            </span>
-                        ) : (
-                            <span className="text-slate-400">-</span>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            <div className="rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800">
-                <h5 className="mb-4 text-sm font-semibold text-slate-500 uppercase tracking-wide flex items-center gap-2">
-                    <HiPaperClip className="text-base" />
-                    Archivos de la tarea
-                </h5>
-                {(task.files || []).length > 0 && (
-                    <div className="mb-3 space-y-2">
-                        {(task.files || []).map((file) => (
-                            <div
-                                key={file.id}
-                                className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 dark:border-slate-700 dark:bg-slate-800"
-                            >
-                                <div className="flex items-center gap-2.5 text-sm min-w-0">
-                                    <HiPaperClip className="text-slate-400 flex-shrink-0" />
-                                    <span className="truncate">{file.name}</span>
-                                    <span className="text-xs uppercase text-slate-400 flex-shrink-0">.{file.type}</span>
-                                </div>
-                                <div className="flex items-center gap-1 flex-shrink-0 ml-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => handlePreviewFile(file.id, file.name)}
-                                        className="text-blue-500 hover:text-blue-700 p-1"
-                                        title="Vista previa"
-                                    >
-                                        <HiEye />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleDownloadFile(file.id, file.name)}
-                                        className="text-blue-500 hover:text-blue-700 p-1"
-                                        title="Descargar"
-                                    >
-                                        <HiDownload />
-                                    </button>
-                                    {isAdmin && (
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDeleteTaskFile(file.id)}
-                                            className="text-red-500 hover:text-red-700 p-1"
-                                        >
-                                            <HiTrash />
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {isAdmin ? (
-                    <>
-                        <div className="flex items-center gap-3">
-                            <input
-                                type="file"
-                                multiple
-                                onChange={handleTaskFileSelect}
-                                accept=".pdf,.pptx,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp"
-                                className="block w-full max-w-xs text-sm text-slate-500 file:mr-4 file:cursor-pointer file:rounded file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100 dark:text-slate-400 dark:file:bg-slate-700 dark:file:text-slate-200"
-                            />
-                            {taskNewFiles.length > 0 && (
-                                <Button size="sm" variant="solid" onClick={handleUploadTaskFiles} icon={<HiUpload />}>
-                                    Subir ({taskNewFiles.length})
-                                </Button>
-                            )}
-                        </div>
-                        {taskNewFiles.length > 0 && (
-                            <div className="mt-2 space-y-1">
-                                {taskNewFiles.map((file, i) => (
-                                    <div key={i} className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
-                                        <div className="flex items-center gap-2">
-                                            <HiPaperClip className="text-slate-400" />
-                                            <span>{file.name}</span>
-                                            <span className="text-xs text-slate-400">({(file.size / 1024).toFixed(1)} KB)</span>
-                                        </div>
-                                        <button type="button" onClick={() => removeTaskNewFile(i)} className="text-red-500 hover:text-red-700">
-                                            <HiTrash />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </>
-                ) : (
-                    ""
-                )}
-            </div>
+            <TaskFilesSection
+                task={task}
+                isAdmin={isAdmin}
+                handlePreviewFile={handlePreviewFile}
+                handleDownloadFile={handleDownloadFile}
+                handleDeleteTaskFile={handleDeleteTaskFile}
+                taskNewFiles={taskNewFiles}
+                handleTaskFileSelect={handleTaskFileSelect}
+                handleUploadTaskFiles={handleUploadTaskFiles}
+                removeTaskNewFile={removeTaskNewFile}
+            />
 
             <div className="rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-700 dark:bg-slate-800">
                 <div className="flex items-center justify-between mb-5">
@@ -744,148 +577,21 @@ const TaskDetail = () => {
                 )}
             </div>
 
-            <Formik
-                enableReinitialize
-                initialValues={subtaskFormValues}
+            <SubtaskFormDrawer
+                isOpen={showSubtaskForm}
+                onClose={() => setShowSubtaskForm(false)}
+                editingSubtask={editingSubtask}
+                subtaskFormValues={subtaskFormValues}
                 validationSchema={subtaskValidationSchema}
                 onSubmit={handleSubtaskSave}
-            >
-                {({ touched, errors, values, setFieldValue, setFieldTouched, isSubmitting, submitForm }) => (
-                    <Drawer
-                        isOpen={showSubtaskForm}
-                        onClose={() => setShowSubtaskForm(false)}
-                        placement="right"
-                        closable
-                        title={
-                            <div>
-                                <h4 className="mb-2">{editingSubtask ? 'Editar subtarea' : 'Nueva subtarea'}</h4>
-                                <p>Completa los datos de la subtarea</p>
-                            </div>
-                        }
-                        footer={
-                            <>
-                                <Button size="sm" variant="solid" color="secondary" onClick={() => setShowSubtaskForm(false)}>
-                                    Salir
-                                </Button>
-                                <Button size="sm" variant="solid" color="primary" onClick={submitForm} loading={isSubmitting}>
-                                    Guardar
-                                </Button>
-                            </>
-                        }
-                    >
-                        <Form>
-                            <FormContainer>
-                                <FormItem
-                                    label="Título"
-                                    invalid={errors.title && touched.title}
-                                    errorMessage={errors.title}
-                                >
-                                    <Field
-                                        type="text"
-                                        autoComplete="off"
-                                        name="title"
-                                        placeholder="Título de la subtarea"
-                                        component={Input}
-                                    />
-                                </FormItem>
-                                <FormItem
-                                    label="Descripción"
-                                    invalid={errors.description && touched.description}
-                                    errorMessage={errors.description}
-                                >
-                                    <Field
-                                        textArea
-                                        rows={3}
-                                        name="description"
-                                        placeholder="Descripción"
-                                        component={Input}
-                                    />
-                                </FormItem>
-                                {editingSubtask && (
-                                    <FormItem label="Estado">
-                                        <Select
-                                            placeholder="Selecciona el estado"
-                                            value={statusOptions.find((o) => o.value === values.status_id)}
-                                            options={statusOptions}
-                                            onChange={(option) => setFieldValue('status_id', option ? option.value : null)}
-                                            onBlur={() => setFieldTouched('status_id', true)}
-                                        />
-                                    </FormItem>
-                                )}
-                                <FormItem label="Vencimiento">
-                                    <DatePicker
-                                        value={values.dt_delivery_limit}
-                                        onChange={(date) => setFieldValue('dt_delivery_limit', date)}
-                                        inputFormat="YYYY-MM-DD"
-                                        placeholder="Selecciona la fecha"
-                                        size="md"
-                                    />
-                                </FormItem>
-
-                                {editingSubtask && (() => {
-                                    const current = subtasks.find((s) => s.id === editingSubtask)
-                                    if (!current || !current.files?.length) return null
-                                    return (
-                                        <FormItem label="Archivos actuales">
-                                            <div className="space-y-2">
-                                                {current.files.map((f) => (
-                                                    <div key={f.id} className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-                                                        <div className="flex items-center gap-2">
-                                                            <HiPaperClip className="text-slate-400" />
-                                                            <span>{f.name}</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <button type="button" onClick={() => handlePreviewFile(f.id, f.name)} className="text-blue-500 hover:text-blue-700" title="Vista previa">
-                                                                <HiEye />
-                                                            </button>
-                                                            <button type="button" onClick={() => handleDownloadFile(f.id, f.name)} className="text-blue-500 hover:text-blue-700" title="Descargar">
-                                                                <HiDownload />
-                                                            </button>
-                                                            <button type="button" onClick={() => handleDeleteSubtaskFile(editingSubtask, f.id)} className="text-red-500 hover:text-red-700">
-                                                                <HiTrash />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </FormItem>
-                                    )
-                                })()}
-
-                                <FormItem label="Subir archivos">
-                                    <input
-                                        type="file"
-                                        multiple
-                                        onChange={(e) => {
-                                            const files = Array.from(e.target.files || [])
-                                            setSubtaskNewFiles((prev) => [...prev, ...files])
-                                            e.target.value = ''
-                                        }}
-                                        accept=".pdf,.pptx,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp"
-                                        className="block w-full text-sm text-slate-500 file:mr-4 file:cursor-pointer file:rounded file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100 dark:text-slate-400 dark:file:bg-slate-700 dark:file:text-slate-200"
-                                    />
-                                    {subtaskNewFiles.length > 0 && (
-                                        <div className="mt-2 space-y-1">
-                                            {subtaskNewFiles.map((file, i) => (
-                                                <div key={i} className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-300">
-                                                    <div className="flex items-center gap-2">
-                                                        <HiPaperClip className="text-slate-400" />
-                                                        <span>{file.name}</span>
-                                                        <span className="text-xs text-slate-400">({(file.size / 1024).toFixed(1)} KB)</span>
-                                                    </div>
-                                                    <button type="button" onClick={() => setSubtaskNewFiles((prev) => prev.filter((_, j) => j !== i))} className="text-red-500 hover:text-red-700">
-                                                        <HiTrash />
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </FormItem>
-                            </FormContainer>
-                        </Form>
-                    </Drawer>
-                )}
-            </Formik>
+                statusOptions={statusOptions}
+                subtasks={subtasks}
+                handlePreviewFile={handlePreviewFile}
+                handleDownloadFile={handleDownloadFile}
+                handleDeleteSubtaskFile={handleDeleteSubtaskFile}
+                subtaskNewFiles={subtaskNewFiles}
+                setSubtaskNewFiles={setSubtaskNewFiles}
+            />
 
             <ConfirmDialog
                 isOpen={confirmDelete.open}
@@ -920,40 +626,20 @@ const TaskDetail = () => {
                 ¿Estás seguro de solicitar la revisión de esta tarea? Una vez enviada, solo los administradores podrán aprobarla o rechazarla.
             </ConfirmDialog>
 
-            <ConfirmDialog
+            <ReviewConfirmDialog
                 isOpen={confirmReviewAction.open}
-                title={confirmReviewAction.action === 'approved' ? 'Aprobar revisión' : 'Rechazar revisión'}
-                type={confirmReviewAction.action === 'approved' ? 'success' : 'danger'}
-                cancelText="Cancelar"
-                confirmText={confirmReviewAction.action === 'approved' ? 'Aprobar' : 'Rechazar'}
-                confirmButtonColor={confirmReviewAction.action === 'approved' ? 'emerald' : 'red'}
+                action={confirmReviewAction.action}
+                observation={confirmReviewAction.observation}
+                onObservationChange={(value) =>
+                    setConfirmReviewAction((prev) => ({ ...prev, observation: value }))
+                }
                 onCancel={() => setConfirmReviewAction({ open: false, action: null, observation: '' })}
                 onConfirm={() => {
                     const { action, observation } = confirmReviewAction
                     setConfirmReviewAction({ open: false, action: null, observation: '' })
                     handleReview(action, observation)
                 }}
-            >
-                <p className="mb-3">
-                    {confirmReviewAction.action === 'approved'
-                        ? '¿Estás seguro de aprobar esta tarea?'
-                        : '¿Estás seguro de rechazar esta tarea?'}
-                </p>
-                <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
-                        Observación
-                    </label>
-                    <textarea
-                        className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                        rows={3}
-                        placeholder="Escribe una observación..."
-                        value={confirmReviewAction.observation}
-                        onChange={(e) =>
-                            setConfirmReviewAction((prev) => ({ ...prev, observation: e.target.value }))
-                        }
-                    />
-                </div>
-            </ConfirmDialog>
+            />
         </div>
     )
 }
