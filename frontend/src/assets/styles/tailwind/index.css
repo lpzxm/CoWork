@@ -1,0 +1,188 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    
+    :root {
+
+        --c-primary   : theme(colors.buke.600);
+        --c-secondary : theme(colors.slate.600);
+        --c-success   : theme(colors.emerald.500);
+        --c-info      : theme(colors.blue.600);
+        --c-danger    : theme(colors.red.500);
+        --c-warning   : theme(colors.yellow.500);
+
+        --c-body      : theme(colors.slate.600);
+        --c-body-alt  : theme(colors.slate.400);
+
+        --c-surface        : theme(colors.white);
+        --c-surface-dark   : theme(colors.buke.600);
+        --c-surface-card    : theme(colors.white);
+
+        --c-border         : theme(colors.slate.300);
+
+        --c-white          : theme(colors.slate.50);
+    }
+
+    .dark {
+
+        --c-primary   : theme(colors.buke.600);
+        --c-secondary : theme(colors.slate.200);
+        --c-success   : theme(colors.emerald.500);
+        --c-info      : theme(colors.blue.600);
+        --c-danger    : theme(colors.red.500);
+        --c-warning   : theme(colors.yellow.500);
+
+        --c-body      : theme(colors.slate.300);
+        --c-body-alt  : theme(colors.slate.200);
+
+        --c-surface         : theme(colors.slate.800);
+        --c-surface-dark    : theme(colors.slate.900);
+        --c-surface-card    : theme(colors.gray.800);
+
+        --c-border         : theme(colors.slate.600);
+        --c-white          : theme(colors.slate.50);
+
+    }
+
+    body {
+        @apply text-[color:var(--c-body)] text-sm bg-slate-100 dark:bg-slate-900 leading-normal;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    h1, .h1 { @apply text-4xl font-bold; color: var(--c-primary) }
+    h2, .h2 { @apply text-3xl font-bold; color: var(--c-primary) }
+    h3, .h3 { @apply text-2xl font-bold; color: var(--c-secondary) }
+    h4, .h4 { @apply text-xl font-semibold; color: var(--c-secondary) }
+    h5, .h5 { @apply text-lg font-semibold; color: var(--c-secondary) }
+    h6, .h6 { @apply text-base font-semibold; color: var(--c-secondary) }
+    
+    hr, .divider {
+        @apply border-slate-200 dark:border-slate-700;
+    }
+
+    .border {
+        border: solid var(--c-border);
+    }
+    .border-b {
+        border-bottom-width: 1px;
+        border-bottom-color: var(--c-border);
+    }
+    .border-t {
+        border-top-width: 1px;
+        border-top-color: var(--c-border);
+    }
+    .border-l {
+        border-left-width: 1px;
+        border-left-color: var(--c-border);
+    }
+    .border-r {
+        border-right-width: 1px;
+        border-right-color: var(--c-border);
+    }
+    .border-x {
+        border-left-width: 1px;
+        border-right-width: 1px;
+        border-color: var(--c-border);
+    }
+    .border-y {
+        border-top-width: 1px;
+        border-bottom-width: 1px;
+        border-color: var(--c-border);
+    }
+
+    .text-primary {
+        color: var(--c-primary);
+    }
+
+    .text-secondary {
+        color: var(--c-secondary);
+    }
+
+    .text-success {
+        color: var(--c-success);
+    }
+
+    .text-info {
+        color: var(--c-info);
+    }
+
+    .text-danger {
+        color: var(--c-danger);
+    }
+
+    .text-warning {
+        color: var(--c-warning);
+    }
+
+    .text-body {
+        color: var(--c-body);
+    }
+
+    .text-body-alt {
+        color: var(--c-body-alt);
+    }
+
+    .text-surface {
+        color: var(--c-surface);
+    }
+
+    .text-surface-dark {
+        color: var(--c-surface-dark);
+    }
+
+    .text-white {
+        color: var(--c-white);
+    }
+
+}
+
+@layer components {
+
+    .app-header {
+        @apply app-shell app-shell-border border-b;
+        @apply font-medium shadow-sm;
+    }
+
+    .app-shell        { background-color: var(--c-surface); }
+    .app-shell-border { border-color:     var(--c-border);  }
+
+    .side-nav-default {
+        @apply bg-white text-[color:var(--c-body)] dark:bg-slate-900 dark:text-[color:var(--c-body)];
+    }
+    
+    .side-nav-dark {
+        @apply bg-slate-900 text-slate-100;
+    }
+  
+    .side-nav-themed {
+        background-color: var(--c-surface-dark);
+        border-inline-end: 1px solid hsl(0deg 0% 100% / 0.15);
+        @apply text-white;
+    }
+    
+    .side-nav-transparent {
+        @apply bg-transparent text-[color:var(--c-body)];
+    }
+
+    .menu-item {
+        @apply px-3 py-2 rounded-md text-[color:var(--c-body)] transition;
+    }
+
+    .menu-item:hover {
+        background-color: var(--c-primary);
+        @apply bg-opacity-10;
+    }
+
+    .menu-item-active {
+        background-color: var(--c-primary);
+        @apply text-white;
+    }
+
+    .menu-group-title {
+        @apply text-[color:var(--c-body-alt)] font-semibold text-xs px-3 pt-3 pb-1;
+    }
+
+    
+}

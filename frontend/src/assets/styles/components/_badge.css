@@ -1,0 +1,47 @@
+.badge {
+    @apply rounded-full px-2 py-0.5 text-xs text-white;   
+}
+
+.badge-dot {
+    @apply rounded-full text-xs text-white w-2 h-2;
+}
+
+.badge-primary {
+    background-color: var(--c-primary);
+}
+
+.badge-secondary {
+    background-color: var(--c-secondary);
+}
+
+.badge-success {
+    background-color: var(--c-success);
+}
+
+.badge-info {
+    background-color: var(--c-info);
+}
+
+.badge-danger {
+    background-color: var(--c-danger);
+}
+
+.badge-warning {
+    background-color: var(--c-warning);
+}
+
+.badge-wrapper {
+    @apply relative flex;
+}
+
+.badge-inner {
+    @apply 
+        absolute z-10 
+        transform
+        top-0
+        ltr:translate-x-2/4 
+        rtl:-translate-x-2/4 
+        -translate-y-2/4  
+        ltr:right-0 
+        rtl:left-0;
+}

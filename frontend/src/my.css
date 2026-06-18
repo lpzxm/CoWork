@@ -1,0 +1,31 @@
+/* body { font-size: 1rem } */
+
+.required::after {
+    content: "*";
+    color: red;
+}
+
+.fc-toolbar-title::first-letter {
+    text-transform: capitalize;
+}
+
+/* .fc-day-other .fc-daygrid-day-frame {
+    display: none;
+} */
+
+.fc-daygrid-day{
+    border:solid 2px;
+}
+
+.fc-daygrid-day.fc-day.fc-day-disabled {
+    background-color: white;
+    border:solid 2px #EAEAEA;
+}
+
+.fc-daygrid.fc-dayGridMonth-view.fc-view {
+    border:none;
+}
+
+.custom-calendar-event .badge-dot {
+    display: none;
+}

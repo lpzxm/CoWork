@@ -1,0 +1,49 @@
+.card {
+    @apply rounded-lg;
+    background-color: var(--c-surface-card);
+}
+
+
+
+.card-header, .card-footer {
+    @apply py-3 px-5;
+}
+
+.card-border {
+    border: 2px solid var(--c-border);
+}
+
+.card-header-border {
+    border-bottom: 2px solid var(--c-border);
+}
+
+.card-footer-border {
+    border-top: 2px solid var(--c-border);
+}
+
+.card-body {
+    @apply p-6;
+}
+
+.card-shadow {
+    @apply shadow border-b border-gray-200 dark:border-gray-600 dark:border-none;
+}
+
+.card-header-extra {
+    @apply flex justify-between items-center;
+}
+
+.card-gutterless {
+    @apply p-0;
+}
+
+.card-active {
+    background-color: var(--c-surface);
+    border: 2px solid var(--c-primary);
+}
+
+.card-active-header {
+    color: var(--c-white) !important;
+    background-color: var(--c-primary);
+    border-bottom: 2px solid var(--c-primary);
+}

@@ -1,0 +1,42 @@
+{
+  "skipUnused": true,
+  "ignore": [
+    "components",
+    "configs",
+    "store",
+    "utils",
+    "services",
+    "locales",
+    "views",
+    "assets",
+    "helpers",
+    "constants",
+    "mock",
+    "eslint-plugin-react",
+    "eslint-plugin-react-hooks",
+    "@eslint/js",
+    "globals",
+    "rollup-plugin-visualizer"
+  ],
+  "depcheck": {
+    "ignoreMatches": [
+      "@testing-library/react",
+      "@testing-library/user-event",
+      "@testing-library/jest-dom",
+      "autoprefixer",
+      "postcss-import",
+      "tailwind-safelist-generator",
+      "miragejs",
+      "web-vitals",
+      "history",
+      "tailwindcss",
+      "@tailwindcss/typography",
+      "eslint-config-prettier",
+      "rollup-plugin-visualizer",
+      "eslint-plugin-react",
+      "eslint-plugin-react-hooks",
+      "@eslint/js",
+      "globals"
+    ]
+  }
+}
