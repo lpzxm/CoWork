@@ -40,6 +40,9 @@
         <li><strong>Descripción:</strong> {{ $task->description ?? 'Sin descripción' }}</li>
         <li><strong>Fecha límite:</strong> {{ $task->dt_delivery_limit ?? 'Sin fecha' }}</li>
         <li><strong>Estado actual:</strong> {{ $task->status->name ?? 'Sin estado' }}</li>
+        @if ($task->observations)
+            <li><strong>Observación:</strong> {{ $task->observations }}</li>
+        @endif
     </ul>
 
     @if ($action === 'requested')

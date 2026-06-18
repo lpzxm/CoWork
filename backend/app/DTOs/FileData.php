@@ -9,7 +9,7 @@ use Illuminate\Validation\Rule;
 class FileData extends Data
 {
     public function __construct(
-        public int $task_id,
+        public ?int $task_id = null,
         public ?int $sub_task_id = null,
         public ?string $file_type = null,
         public ?string $file_name = null,
@@ -20,11 +20,7 @@ class FileData extends Data
     public static function rules(?int $fileId = null): array
     {
         return [
-            'task_id' => [
-                $fileId ? 'nullable' : 'required',
-                'integer',
-                Rule::exists('tasks', 'id'),
-            ],
+            'task_id' => ['nullable', 'integer', Rule::exists('tasks', 'id')],
             'sub_task_id' => ['nullable', 'integer', Rule::exists('sub_tasks', 'id')],
             'file_type' => [
                 $fileId ? 'nullable' : 'required',

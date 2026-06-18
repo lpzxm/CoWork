@@ -324,7 +324,10 @@ class TaskController extends Controller
         if (!$currentUser->hasRole(['super-admin', 'admin'])) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
 
         try {
-            $request->validate(['action' => 'required|in:approved,rejected']);
+            $request->validate([
+                'action' => 'required|in:approved,rejected',
+                'observation' => 'nullable|string|max:1000',
+            ]);
 
             $task = Task::with('status')->find($id);
             if (!$task) return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
@@ -338,7 +341,11 @@ class TaskController extends Controller
                 $task->declined_by = $currentUser->id;
             }
             $task->updated_by = $currentUser->id;
+            if ($request->filled('observation')) {
+                $task->observations = $request->observation;
+            }
             $task->save();
+            $task->load('status');
 
             // notificar a super-admins y coordinadores asignados
             $superAdmins = User::role('super-admin')->get();

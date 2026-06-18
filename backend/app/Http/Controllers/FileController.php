@@ -58,6 +58,10 @@ class FileController extends Controller
                 if (!$subTask) return response()->json(['status' => 'error', 'message' => 'Subtarea no encontrada.'], 404);
 
                 if (!$currentUser->hasRole(['super-admin', 'admin']) && !$subTask->task->coordinators->contains('id', $currentUser->id)) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
+
+                if (!$taskId) {
+                    $taskId = $subTask->task_id;
+                }
             }
 
             $uploaded = $request->file('file');

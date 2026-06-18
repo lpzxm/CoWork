@@ -9,8 +9,11 @@ use Illuminate\Database\QueryException;
 use App\Models\Status;
 use App\Models\Task;
 use App\Models\SubTask;
+use App\Models\User;
 use App\DTOs\SubTaskData;
 use App\Http\Resources\SubTaskResource;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\Task\SubTaskCreatedMail;
 
 class SubTaskController extends Controller
 {
@@ -66,7 +69,22 @@ class SubTaskController extends Controller
                 'created_by' => $currentUser->id,
             ]);
 
-            $subTask->load(['status', 'creator']);
+            $subTask->load(['status', 'creator', 'task.status']);
+
+            $superAdmins = User::role('super-admin')->get();
+            $admins = User::role('admin')->get();
+            $coordinators = $task->coordinators;
+            $recipients = $superAdmins->concat($admins)->concat($coordinators)->unique('id')->reject(fn($u) => $u->id === $currentUser->id);
+
+            foreach ($recipients as $recipient) {
+                Mail::to($recipient->email)->send(new SubTaskCreatedMail(
+                    recipient: $recipient,
+                    task: $task,
+                    subTask: $subTask,
+                    creator: $currentUser,
+                ));
+            }
+
             return response()->json(['status' => 'success', 'message' => 'Subtarea creada correctamente.', 'data' => new SubTaskResource($subTask)], 200);
         } catch (ValidationException $ve) {
             return response()->json(['status' => 'error', 'message' => 'Datos inválidos.', 'errors' => $ve->errors()], 400);
