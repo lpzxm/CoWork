@@ -97,7 +97,7 @@ function useAuth() {
 						dispatch(setUser({
 							...nextUser,
 							authority,
-							permissions: [],
+							permissions: authority,
 						}))
 
 						dispatch(setEmployee({

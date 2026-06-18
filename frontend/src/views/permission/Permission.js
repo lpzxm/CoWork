@@ -523,9 +523,8 @@ const Permission = () => {
 			info="Crea usuarios, roles y asigna permisos para controlar el acceso al sistema."
 		>
 			<div className="p-4">
-				{isLoading && <div className="text-center">Cargando...</div>}
-				{!isLoading && error && <div className="text-center text-red-600">{error}</div>}
-				{!isLoading && !error && (
+				{error && <div className="text-center text-red-600">{error}</div>}
+				{!error && (
 					<Tabs value={activeTab} onChange={setActiveTab} className="mt-2">
 						<Tabs.TabList>
 							<Tabs.TabNav value="users">Usuarios</Tabs.TabNav>
@@ -540,6 +539,7 @@ const Permission = () => {
 								<DataTable
 									columns={userColumns}
 									data={users}
+									loading={isLoading}
 									RightContent={
 										<Button
 											variant="solid"
@@ -561,6 +561,7 @@ const Permission = () => {
 								<DataTable
 									columns={roleColumns}
 									data={roles}
+									loading={isLoading}
 									RightContent={
 										<Button
 											variant="solid"
@@ -580,7 +581,7 @@ const Permission = () => {
 									<h3 className="text-lg font-semibold">Permisos</h3>
 									<span className="text-sm text-slate-500">Solo lectura</span>
 								</div>
-								<DataTable columns={permissionColumns} data={permissions} />
+								<DataTable columns={permissionColumns} data={permissions} loading={isLoading} />
 							</div>
 						</Tabs.TabContent>
 					</Tabs>

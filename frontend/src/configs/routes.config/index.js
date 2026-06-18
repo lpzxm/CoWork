@@ -8,24 +8,24 @@ export const protectedRoutes = [
         key: 'home',
         path: '/home',
         component: React.lazy(() => import('views/Home')),
-        authority: ['todo.home.view'],
+        authority: ['super-admin', 'admin', 'coordinador'],
     },
     {
-        key: 'permission',
-        path: '/permission',
-        component: React.lazy(() => import('views/permission/Permission')),
-        authority: ['super-admin.permissions.view'],
+        key: 'users',
+        path: '/users',
+        component: React.lazy(() => import('views/users/Users')),
+        authority: ['super-admin', 'admin'],
         base: {
-            title: 'Permisos',
+            title: 'Usuarios',
             subtitle: 'Administración',
-            info: 'Gestiona usuarios, roles y permisos del sistema.',
+            info: 'Gestiona los usuarios del sistema.',
         }
     },
     {
         key: 'tasks',
         path: '/tasks',
         component: React.lazy(() => import('views/todo/Tasks')),
-        authority: ['todo.task.view'],
+        authority: ['super-admin', 'admin', 'coordinador'],
         base: {
             title: 'Tareas',
             subtitle: 'Gestion de tareas',
@@ -33,14 +33,36 @@ export const protectedRoutes = [
         }
     },
     {
+        key: 'taskDetail',
+        path: '/tasks/:id',
+        component: React.lazy(() => import('views/todo/TaskDetail')),
+        authority: ['super-admin', 'admin', 'coordinador'],
+        base: {
+            title: 'Detalle de tarea',
+            subtitle: 'Gestion de tareas',
+            info: 'Administra los detalles, subtareas y archivos de la tarea.',
+        }
+    },
+    {
         key: 'categories',
         path: '/categories',
         component: React.lazy(() => import('views/todo/Categories')),
-        authority: ['todo.category.view'],
+        authority: ['super-admin', 'admin'],
         base: {
             title: 'Categorías',
             subtitle: 'Gestion de categorías',
             info: 'Organiza tus tareas por categorías.',
+        }
+    },
+    {
+        key: 'statuses',
+        path: '/statuses',
+        component: React.lazy(() => import('views/status/Statuses')),
+        authority: ['super-admin', 'admin'],
+        base: {
+            title: 'Estados',
+            subtitle: 'Administración',
+            info: 'Gestiona los estados del sistema.',
         }
     },
 ];
