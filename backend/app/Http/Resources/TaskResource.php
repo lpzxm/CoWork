@@ -47,6 +47,7 @@ class TaskResource extends JsonResource
                     'name' => $user->name,
                 ])
                 : null,
+            'observation' => $this->observations,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

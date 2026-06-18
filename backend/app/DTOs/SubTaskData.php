@@ -3,6 +3,8 @@
 namespace App\DTOs;
 
 use Spatie\LaravelData\Data;
+use Spatie\LaravelData\Attributes\WithCast;
+use Spatie\LaravelData\Casts\DateTimeInterfaceCast;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
@@ -20,6 +22,7 @@ class SubTaskData extends Data
         public ?int $deleted_by = null,
         public ?int $task_id = null,
         public ?int $status_id = null,
+        #[WithCast(DateTimeInterfaceCast::class, format: 'Y-m-d')]
         public ?Carbon $dt_delivery_limit = null,
     ) {}
 

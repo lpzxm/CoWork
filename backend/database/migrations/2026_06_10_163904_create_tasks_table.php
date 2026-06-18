@@ -23,6 +23,7 @@ return new class extends Migration
                 $table->foreignId('updated_by')->nullable()->constrained('users')->comment('Usuario que actualizó la tarea');
                 $table->foreignId('deleted_by')->nullable()->constrained('users')->comment('Usuario que eliminó la tarea');
                 $table->dateTime('dt_delivery_limit')->nullable()->comment('Fecha límite de entrega');
+                $table->text('observations')->nullable()->comment('Observaciones de la tarea');
                 $table->timestamps();
                 $table->softDeletes();
             });

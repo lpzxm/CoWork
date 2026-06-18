@@ -88,7 +88,7 @@ class TaskController extends Controller
                 }
             }
 
-            $task->load(['status', 'creator']);
+            $task->load(['status', 'creator', 'coordinators', 'files']);
             return response()->json(['status' => 'success', 'message' => 'Tarea creada correctamente.', 'data' => new TaskResource($task)], 200);
         } catch (ValidationException $ve) {
             return response()->json(['status' => 'error', 'message' => 'Datos inválidos.', 'errors' => $ve->errors()], 400);
@@ -152,6 +152,8 @@ class TaskController extends Controller
 
             // notificar cambio de estado
             if ($oldStatusId !== $task->status_id) {
+                $task->load('status');
+
                 $superAdmins = User::role('super-admin')->get();
                 $creator = $task->creator;
                 $coordinators = $task->coordinators;
@@ -195,7 +197,7 @@ class TaskController extends Controller
                 }
             }
 
-            $task->load(['status', 'creator', 'coordinators']);
+            $task->load(['status', 'creator', 'coordinators', 'files']);
             return response()->json(['status' => 'success', 'message' => 'Tarea actualizada correctamente.', 'data' => new TaskResource($task)], 200);
         } catch (ValidationException $ve) {
             return response()->json(['status' => 'error', 'message' => 'Datos inválidos.', 'errors' => $ve->errors()], 400);
@@ -252,7 +254,7 @@ class TaskController extends Controller
 
             if (!$currentUser->hasRole(['super-admin', 'admin']) && !$task->coordinators()->where('user_id', $currentUser->id)->exists()) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
 
-            if ($task->status_id !== Status::COMPLETED) return response()->json(['status' => 'error', 'message' => 'La tarea debe estar completada para solicitar revisión.'], 400);
+            // if ($task->status_id !== Status::COMPLETED) return response()->json(['status' => 'error', 'message' => 'La tarea debe estar completada para solicitar revisión.'], 400);
 
             $allCompleted = $task->subtasks()->where('status_id', '!=', Status::COMPLETED)->count() === 0;
             if (!$allCompleted) return response()->json(['status' => 'error', 'message' => 'Todas las subtareas deben estar completadas.'], 400);
@@ -330,6 +332,11 @@ class TaskController extends Controller
             if ($task->status_id !== Status::IN_REVIEW) return response()->json(['status' => 'error', 'message' => 'La tarea no está en proceso de revisión.'], 400);
 
             $task->status_id = $request->action === 'approved' ? Status::APPROVED : Status::REJECTED;
+            if ($request->action === 'approved') {
+                $task->accepted_by = $currentUser->id;
+            } else {
+                $task->declined_by = $currentUser->id;
+            }
             $task->updated_by = $currentUser->id;
             $task->save();
 

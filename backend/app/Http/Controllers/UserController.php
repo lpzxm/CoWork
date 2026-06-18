@@ -119,17 +119,32 @@ class UserController extends Controller
             if (!$user) return response()->json(['status' => 'error', 'message' => 'Usuario no encontrado.'], 404);
             if ($currentUser->hasRole('admin') && $user->hasRole('super-admin')) return response()->json(['status' => 'error', 'message' => 'No autorizado para modificar este usuario.'], 403);
 
+            $plainPassword = User::makeRandomPassword();
+            $request->merge(['password' => $plainPassword]);
             $data = UserData::validateWithId($request->all(), $user->id);
 
             $role = $data->role ?? $user->getRoleNames()->first();
             if ($currentUser->hasRole('admin') && $role !== 'coordinador') return response()->json(['status' => 'error', 'message' => 'Solo puedes asignar rol de coordinador, selecciona uno correcto.'], 403);
 
+            $roleChanged = $user->getRoleNames()->first() !== $role;
             $user->updateOrFail([
                 'name' => $data->name ?? $user->name,
                 'email' => $data->email ?? $user->email,
-                'password' => $data->password ? Hash::make($data->password) : $user->password,
+                'password' => $data->password ?? $user->password,
                 'active' => $data->active ?? $user->active,
             ]);
+
+            if (!$user->wasChanged() && !$roleChanged) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'No se realizó ninguna modificación ya que los datos enviados son idénticos a los actuales.'
+                ], 200);
+            }
+
+            if ($user->wasChanged('email')) {
+                Mail::to($user->email)->send(new UserCredentialsMail(name: $user->name, email: $user->email, plainPassword: $plainPassword));
+                $user->tokens()->delete();
+            }
 
             if ($user->wasChanged('active') && !$user->active) $user->tokens()->delete();
 

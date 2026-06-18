@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use OwenIt\Auditing\Contracts\Auditable;
 
 #[Table('tasks')]
-#[Fillable(['title', 'description', 'status_id', 'created_by', 'accepted_by', 'declined_by', 'updated_by', 'deleted_by', 'dt_delivery_limit'])]
+#[Fillable(['title', 'description', 'status_id', 'created_by', 'accepted_by', 'declined_by', 'updated_by', 'deleted_by', 'dt_delivery_limit', 'observations'])]
 class Task extends Model implements Auditable
 {
     use \OwenIt\Auditing\Auditable;

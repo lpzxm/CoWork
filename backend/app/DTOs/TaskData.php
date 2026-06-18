@@ -22,6 +22,7 @@ class TaskData extends Data
         public ?int $declined_by = null,
         public ?int $updated_by = null,
         public ?int $deleted_by = null,
+        public ?string $observations = null
     ) {}
 
 
