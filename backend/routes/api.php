@@ -7,6 +7,10 @@ use App\Http\Resources\UserResource;
 // Route::post('/register', [\App\Http\Controllers\Auth\AuthController::class, 'register']);
 Route::post('/login', [\App\Http\Controllers\Auth\AuthController::class, 'login'])->middleware('throttle:login');
 Route::post('/verify-token', [\App\Http\Controllers\Auth\AuthController::class, 'verifyToken'])->middleware('throttle:verify');
+Route::post('/auth/send-two-factor-expires-at', [\App\Http\Controllers\Auth\AuthController::class, 'sendTwoFactorExpiresAt']);
+
+// Imagenes publicas (logo, escudo)
+Route::get('images/general/{filename}', [\App\Http\Controllers\ImageController::class, 'show']);
 
 Route::middleware('auth:api')->group(function () {
     Route::get('/user', function (Request $request) {

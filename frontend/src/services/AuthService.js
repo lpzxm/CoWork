@@ -3,18 +3,18 @@ import ApiService from './ApiService'
 export async function apiAuthentication(data)
 {
     return ApiService.fetchData({
-        url: '/auth/authentication',
+        url: '/login',
         method: 'POST',
-        data
+        data: { email: data.identity, password: data.password }
     });
 }
 
 export async function apiVerify(data)
 {
     return ApiService.fetchData({
-        url: '/auth/verify',
+        url: '/verify-token',
         method: 'POST',
-        data
+        data: { email: data.tk, code: data.code }
     });
 }
 
@@ -40,7 +40,7 @@ export async function apiSignUp(data)
 export async function apiSignOut(data)
 {
     return ApiService.fetchData({
-        url: '/auth/signout',
+        url: '/logout',
         method: 'POST',
         data
     })

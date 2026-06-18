@@ -113,6 +113,8 @@ class AuthController extends Controller
         }
     }
 
+
+
     public function verifyToken(Request $request): JsonResponse
     {
         try {
@@ -144,6 +146,33 @@ class AuthController extends Controller
             return response()->json(['status' => 'success', 'message' => 'Verificado correctamente.', 'token' => $token, 'data' => new UserResource($user)], 200);
         } catch (QueryException $qe) {
             return response()->json(['status' => 'error', 'message' => $qe->getMessage()], 400);
+        } catch (\Exception $e) {
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
+        }
+    }
+
+    public function sendTwoFactorExpiresAt(Request $request): JsonResponse
+    {
+        try {
+            $tk = $request->input('tk');
+            $email = $tk ?: $request->input('email');
+
+            if (!$email) {
+                return response()->json(['status' => 'error', 'message' => 'Identificador requerido.'], 400);
+            }
+
+            $user = User::where('email', $email)->first();
+            if (!$user) return response()->json(['status' => 'error', 'message' => 'Usuario no encontrado.'], 404);
+
+            $code = VerifyCode::where(['user_id' => $user->id, 'type' => 'login', 'used_at' => null])->latest()->first();
+
+            if (!$code) {
+                return response()->json(['status' => 'error', 'message' => 'No hay un código de verificación activo.'], 404);
+            }
+
+            return response()->json([
+                'expires_at' => $code->expires_at->toISOString(),
+            ], 200);
         } catch (\Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }

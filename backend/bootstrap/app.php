@@ -20,10 +20,14 @@ return Application::configure(basePath: dirname(__DIR__))
             'permiso' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'rol_o_permiso' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
+
+        $middleware->api(prepend: [
+            \Illuminate\Http\Middleware\HandleCors::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*'),
+            fn (Request $request) => $request->is('api/*') || $request->is('cowork/*'),
         );
 
         $exceptions->render(function (\Illuminate\Http\Exceptions\ThrottleRequestsException $e, Request $request) {

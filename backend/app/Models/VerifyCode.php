@@ -14,6 +14,15 @@ use OwenIt\Auditing\Contracts\Auditable;
 #[Fillable(['user_id', 'code', 'type', 'expires_at', 'used_at'])]
 class VerifyCode extends Model implements Auditable
 {
+    protected function casts(): array
+    {
+        return [
+            'expires_at' => 'datetime',
+            'used_at' => 'datetime',
+        ];
+    }
+
+
     use \OwenIt\Auditing\Auditable;
     
     public function user() : BelongsTo

@@ -53,19 +53,11 @@ function useAuth() {
 				const res = await apiAuthentication(values)
 
 				if (res.data && isSuccessfulResponse(res.status)) {
-					const {
-						message,
-						tk: nextTk,
-						change_password: changePassword,
-					} = res.data
+					const { message, email } = res.data
 
-					dispatch(setTk(nextTk))
+					dispatch(setTk(email))
 
-					if (changePassword) {
-						navigate(appConfig.changePasswordEntryPath)
-					} else {
-						dispatch(setVerificationOn(true))
-					}
+					dispatch(setVerificationOn(true))
 
 					return { status: res.status, message }
 				}
@@ -96,57 +88,32 @@ function useAuth() {
 				if (resp.data && isSuccessfulResponse(resp.status)) {
 					dispatch(setVerificationOn(false))
 
-					const {
-						user: nextUser,
-						employee,
-						functional_position: functionalPosition,
-						organizational_unit: organizationalUnit,
-						notifications,
-						roles = [],
-						permissions = [],
-						access_token: nextToken,
-					} = resp.data
+					const { token: accessToken, data: nextUser } = resp.data
 
 					if (nextUser) {
+						const roles = nextUser.roles || []
 						const authority = Array.isArray(roles) ? roles : [];
-						const permissionList = Array.isArray(permissions) ? permissions : [];
-						
+
 						dispatch(setUser({
-							...(nextUser || userInitialState),
+							...nextUser,
 							authority,
-							permissions: permissionList,
+							permissions: [],
+						}))
+
+						dispatch(setEmployee({
+							name: nextUser.name || '',
+							lastname: '',
+							email: nextUser.email || '',
+						}))
+
+						dispatch(setFunctionalPosition({
+							name: roles[0] || '',
 						}))
 					}
 
-					if (!nextUser.change_password) {
-						dispatch(onSignInSuccess(nextToken))
+					if (nextUser && !nextUser.change_password) {
+						dispatch(onSignInSuccess(accessToken))
 
-						if (employee) {
-							dispatch(setEmployee(employee || empInitialState))
-						}
-						if (functionalPosition) {
-							dispatch(
-								setFunctionalPosition(
-									functionalPosition ||
-										functionalPositionInitialState
-								)
-							)
-						}
-						if (organizationalUnit) {
-							dispatch(
-								setOrganizationalUnit(
-									organizationalUnit ||
-										organizationalUnitInitialState
-								)
-							)
-						}
-						if (notifications) {
-							dispatch(
-								setNotifications(
-									notifications || notificationsInitialState
-								)
-							)
-						}
 						navigate(appConfig.authenticatedEntryPath)
 					}
 
