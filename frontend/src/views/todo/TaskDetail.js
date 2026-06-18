@@ -15,6 +15,7 @@ import {
 } from 'components/ui'
 import Tag from 'components/ui/Tag'
 import ConfirmDialog from 'components/custom/ConfirmDialog'
+import Progress from 'components/ui/Progress'
 
 import {
     HiArrowLeft, HiPaperClip, HiTrash, HiPlusCircle, HiPencil,
@@ -695,10 +696,13 @@ const TaskDetail = () => {
                             )}
                         </div>
                         {subtasks.length > 0 && (
-                            <div className="mt-3 w-48 bg-slate-100 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
-                                <div
-                                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                                    style={{ width: `${(subtasks.filter((s) => s.status_id === 4).length / subtasks.length) * 100}%` }}
+                            <div className="mt-3 w-48">
+                                <Progress
+                                    variant="line"
+                                    percent={Math.round((subtasks.filter((s) => s.status_id === 4).length / subtasks.length) * 100)}
+                                    showInfo={false}
+                                    size="sm"
+                                    color="emerald-500"
                                 />
                             </div>
                         )}

@@ -43,17 +43,17 @@ export const protectedRoutes = [
             info: 'Administra los detalles, subtareas y archivos de la tarea.',
         }
     },
-    {
-        key: 'categories',
-        path: '/categories',
-        component: React.lazy(() => import('views/todo/Categories')),
-        authority: ['super-admin', 'admin'],
-        base: {
-            title: 'Categorías',
-            subtitle: 'Gestion de categorías',
-            info: 'Organiza tus tareas por categorías.',
-        }
-    },
+    // {
+    //     key: 'categories',
+    //     path: '/categories',
+    //     component: React.lazy(() => import('views/todo/Categories')),
+    //     authority: ['super-admin', 'admin'],
+    //     base: {
+    //         title: 'Categorías',
+    //         subtitle: 'Gestion de categorías',
+    //         info: 'Organiza tus tareas por categorías.',
+    //     }
+    // },
     {
         key: 'statuses',
         path: '/statuses',

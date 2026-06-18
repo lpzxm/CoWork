@@ -37,6 +37,7 @@ const validationSchema = Yup.object().shape({
 const Users = () => {
     const dispatch = useDispatch()
     const currentAuthority = useSelector((state) => state.auth.user.authority)
+    const currentUserId = useSelector((state) => state.auth.user.id)
     const isSuperAdmin = currentAuthority.includes('super-admin')
 
     const [users, setUsers] = useState([])
@@ -160,18 +161,20 @@ const Users = () => {
                 cell: ({ row }) => (
                     <div className="flex items-center gap-2">
                         <Button size="sm" variant="solid" onClick={() => openEdit(row.original)} icon={<HiPencil />} />
-                        <Button
-                            size="sm"
-                            variant="solid"
-                            color="danger"
-                            onClick={() => setConfirmDelete({ open: true, id: row.original.id })}
-                            icon={<HiTrash />}
-                        />
+                        {Number(row.original.id) !== Number(currentUserId) && (
+                            <Button
+                                size="sm"
+                                variant="solid"
+                                color="danger"
+                                onClick={() => setConfirmDelete({ open: true, id: row.original.id })}
+                                icon={<HiTrash />}
+                            />
+                        )}
                     </div>
                 ),
             },
         ],
-        [openEdit]
+        [openEdit, currentUserId]
     )
 
     const openNotification = (type, title, message) => {
@@ -209,7 +212,7 @@ const Users = () => {
                 if (created) {
                     setUsers((prev) => [normalizeUser(created), ...prev])
                 }
-                openNotification('success', 'Éxito', 'Usuario creado correctamente')
+                openNotification('success', 'Éxito', 'Usuario creado correctamente. Se le envió un correo de bienvenida.')
             }
 
             setEditing(null)
