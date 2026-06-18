@@ -3,7 +3,8 @@ import {
     HiHome,
     HiClipboardCheck,
     HiCollection,
-    HiShieldCheck,
+    HiBadgeCheck,
+    HiUserGroup,
 } from 'react-icons/hi';
 
 const Dgehm = () => {
@@ -16,9 +17,10 @@ const Dgehm = () => {
 
 const navigationIcon = {
     home: <HiHome />,
+    users: <HiUserGroup />,
     tasks: <HiClipboardCheck />,
     categories: <HiCollection />,
-    permissions: <HiShieldCheck />,
+    statuses: <HiBadgeCheck />,
     dgehm: <Dgehm />,
 }
 

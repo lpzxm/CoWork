@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Pagination, Select, Input} from 'components/ui';
+import { TableRowSkeleton } from 'components/shared'
 import {
     useReactTable,
     getCoreRowModel,
@@ -61,7 +62,7 @@ const pageSizeOption = [
 
 const DataTable = (props) =>
 {
-    const { className,columns,data,Title,LeftContent,RightContent } = props;
+    const { className,columns,data,Title,LeftContent,RightContent,loading } = props;
 
     const [sorting, setSorting] = useState([])
     const [columnFilters, setColumnFilters] = React.useState([])
@@ -120,6 +121,44 @@ const DataTable = (props) =>
                 </div>
                 <div>
                 {
+                    loading ? (
+                        <Table compact>
+                            <THead>
+                                { table.getHeaderGroups().map((headerGroup) => (
+                                    <Tr key={headerGroup.id}>
+                                        { headerGroup.headers.map((header) => {
+                                            return (
+                                                <Th
+                                                    key={header.id}
+                                                    colSpan={header.colSpan}
+                                                    className={`${header.column.columnDef.thClassName}`}
+                                                >
+                                                    { header.isPlaceholder ? null : (
+                                                        <div
+                                                            {...{
+                                                                className:
+                                                                    header.column.getCanSort()
+                                                                ? 'cursor-pointer select-none'
+                                                                : '',
+                                                                onClick:
+                                                                header.column.getToggleSortingHandler(),
+                                                            }}
+                                                        >
+                                                            <div className={`flex justify-start items-center ${header.column.columnDef.headerClassName}`}>
+                                                                { flexRender( header.column.columnDef.header, header.getContext() )}
+                                                                { header.column.getCanSort() && <Sorter sort = { header.column.getIsSorted() } />}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </Th>
+                                            )
+                                        })}
+                                    </Tr>
+                                ))}
+                            </THead>
+                            <TableRowSkeleton columns={columns.length} rows={10} />
+                        </Table>
+                    ) :
                     totalData > 0 ?
                     (
                         <>
@@ -198,7 +237,7 @@ const DataTable = (props) =>
                         </>
                     )
                     :
-                    (
+                    !loading && (
                         <div className={`flex justify-between mt-5 text-lg font-semibold`}>
                             <div className={`flex justify-between gap-5 items-center`}>
                                 <BiFileBlank/>
