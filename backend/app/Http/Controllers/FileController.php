@@ -126,7 +126,7 @@ class FileController extends Controller
         if (!$currentUser->hasRole(['super-admin', 'admin', 'coordinador'])) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
         
         try {
-            $file = File::find($id)->with('task');
+            $file = File::with('task')->find($id);
             if (!$file) return response()->json(['status' => 'error', 'message' => 'Archivo no encontrado.'], 404);
 
             $task = $file->task;

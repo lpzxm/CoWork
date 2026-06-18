@@ -5,8 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Resources\UserResource;
 
 // Route::post('/register', [\App\Http\Controllers\Auth\AuthController::class, 'register']);
-Route::post('/login', [\App\Http\Controllers\Auth\AuthController::class, 'login']);
-Route::post('/verify-token', [\App\Http\Controllers\Auth\AuthController::class, 'verifyToken']);
+Route::post('/login', [\App\Http\Controllers\Auth\AuthController::class, 'login'])->middleware('throttle:login');
+Route::post('/verify-token', [\App\Http\Controllers\Auth\AuthController::class, 'verifyToken'])->middleware('throttle:verify');
 
 Route::middleware('auth:api')->group(function () {
     Route::get('/user', function (Request $request) {

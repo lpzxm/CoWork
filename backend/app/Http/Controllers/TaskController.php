@@ -252,7 +252,7 @@ class TaskController extends Controller
 
             if (!$currentUser->hasRole(['super-admin', 'admin']) && !$task->coordinators()->where('user_id', $currentUser->id)->exists()) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
 
-            if ($task->status_id !== Status::IN_PROGRESS) return response()->json(['status' => 'error', 'message' => 'La tarea no esta en progreso para ser revisada.'], 400);
+            if ($task->status_id !== Status::COMPLETED) return response()->json(['status' => 'error', 'message' => 'La tarea debe estar completada para solicitar revisión.'], 400);
 
             $allCompleted = $task->subtasks()->where('status_id', '!=', Status::COMPLETED)->count() === 0;
             if (!$allCompleted) return response()->json(['status' => 'error', 'message' => 'Todas las subtareas deben estar completadas.'], 400);

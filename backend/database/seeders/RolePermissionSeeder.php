@@ -39,8 +39,8 @@ class RolePermissionSeeder extends Seeder
 
         $admin = Role::create(['name' => 'admin']); // Creacion de rol de admin
         $admin->givePermissionTo([
-            'users.create', 'users.read', 'users.update',
-            'tasks.create', 'tasks.read', 'tasks.update', 'tasks.assign',
+            'users.create', 'users.read', 'users.update', 'users.delete',
+            'tasks.create', 'tasks.read', 'tasks.update', 'tasks.assign', 'tasks.delete',
             'subtasks.create', 'subtasks.read', 'subtasks.update', 'subtasks.approve', 'subtasks.delete',
             'subtasks.files.upload', 'subtasks.files.delete',
         ]); // asignar todos los permisos al rol de admin

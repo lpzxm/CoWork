@@ -36,7 +36,7 @@ class UserData extends Data
             'password' => $userId
                 ? ['nullable', 'string', 'min:8', 'regex:/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{8,}$/']
                 : ['required', 'string', 'min:8', 'regex:/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{8,}$/'],
-            'active' => ['required', 'boolean'],
+            'active' => ['nullable', 'boolean'],
             'role' => ['nullable', 'string', Rule::exists('roles', 'name')],
         ];
     }

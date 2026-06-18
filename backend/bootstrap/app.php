@@ -25,4 +25,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*'),
         );
+
+        $exceptions->render(function (\Illuminate\Http\Exceptions\ThrottleRequestsException $e, Request $request) {
+            if ($request->is('cowork/*')) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Demasiados intentos. Intenta de nuevo en un minuto.',
+                ], 429);
+            }
+        });
     })->create();
