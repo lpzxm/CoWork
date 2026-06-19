@@ -141,6 +141,8 @@ class AuthController extends Controller
             if (!$code || !$code->isValid()) return response()->json(['status' => 'error', 'message' => 'El codigo de verificación es incorrecto.'], 400);
 
             $token = $user->createToken('auth_token')->accessToken;
+            $user->email_verified_at = now();
+            $user->save();
             $user->auditLogin();
 
             return response()->json(['status' => 'success', 'message' => 'Verificado correctamente.', 'token' => $token, 'data' => new UserResource($user)], 200);

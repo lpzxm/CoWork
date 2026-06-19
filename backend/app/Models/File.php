@@ -17,6 +17,20 @@ class File extends Model implements Auditable
 {
     use \OwenIt\Auditing\Auditable;
 
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+            'deleted_at' => 'datetime',
+        ];
+    }
+
     use SoftDeletes;
 
     public function task() : BelongsTo {

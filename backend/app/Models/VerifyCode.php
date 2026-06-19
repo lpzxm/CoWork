@@ -19,6 +19,8 @@ class VerifyCode extends Model implements Auditable
         return [
             'expires_at' => 'datetime',
             'used_at' => 'datetime',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
         ];
     }
 

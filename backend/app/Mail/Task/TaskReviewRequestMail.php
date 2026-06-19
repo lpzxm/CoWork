@@ -49,7 +49,8 @@ class TaskReviewRequestMail extends Mailable
                 'requester' => $this->requester,
                 'recipient' => $this->recipient,
                 'task' => $this->task,
-                'action' => $this->action
+                'action' => $this->action,
+                'taskUrl' => config('app.frontend_url') . '/tasks/' . $this->task->id,
             ],
         );
     }

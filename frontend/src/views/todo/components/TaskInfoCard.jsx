@@ -23,10 +23,14 @@ const TaskInfoCard = ({ task, statusColorMap, formatDate }) => {
                 </Tag>
             </div>
 
-            <div className="grid grid-cols-3 gap-5 text-sm border-t border-slate-100 dark:border-slate-700 pt-5">
+            <div className="grid grid-cols-4 gap-5 text-sm border-t border-slate-100 dark:border-slate-700 pt-5">
                 <div>
                     <span className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Creada por</span>
                     <span className="text-slate-700 dark:text-slate-200">{task.created_by?.name || '-'}</span>
+                </div>
+                <div>
+                    <span className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Creado el:</span>
+                    <span className="text-slate-700 dark:text-slate-200">{formatDate(task.created_at)}</span>
                 </div>
                 <div>
                     <span className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Vencimiento</span>

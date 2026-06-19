@@ -1,4 +1,5 @@
 import React from 'react'
+import dayjs from 'dayjs'
 import { Drawer, Input, Select, DatePicker, FormItem, FormContainer } from 'components/ui'
 import { Button } from 'components/custom'
 import { Field, Form, Formik } from 'formik'
@@ -77,6 +78,21 @@ const SubtaskFormDrawer = ({
                                     component={Input}
                                 />
                             </FormItem>
+                            {editingSubtask && (() => {
+                                const current = subtasks.find((s) => s.id === editingSubtask)
+                                if (!current) return null
+                                return (
+                                    <FormItem label="Creado por">
+                                        <div className="text-sm text-slate-600 dark:text-slate-300">
+                                            <span className="font-medium">{current.created_by?.name || 'Desconocido'}</span>
+                                            <span className="mx-1.5 text-slate-400">·</span>
+                                            <span className="text-slate-400">
+                                                {current.created_at ? dayjs(current.created_at).format('DD/MM/YYYY') : '-'}
+                                            </span>
+                                        </div>
+                                    </FormItem>
+                                )
+                            })()}
                             {editingSubtask && (
                                 <FormItem label="Estado">
                                     <Select
@@ -105,22 +121,29 @@ const SubtaskFormDrawer = ({
                                     <FormItem label="Archivos actuales">
                                         <div className="space-y-2">
                                             {current.files.map((f) => (
-                                                <div key={f.id} className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
-                                                    <div className="flex items-center gap-2">
-                                                        <HiPaperClip className="text-slate-400" />
-                                                        <span>{f.name}</span>
+                                                <div key={f.id} className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <HiPaperClip className="text-slate-400 flex-shrink-0" />
+                                                            <span className="truncate">{f.name}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                                            <button type="button" onClick={() => handlePreviewFile(f.id, f.name)} className="text-blue-500 hover:text-blue-700" title="Vista previa">
+                                                                <HiEye />
+                                                            </button>
+                                                            <button type="button" onClick={() => handleDownloadFile(f.id, f.name)} className="text-blue-500 hover:text-blue-700" title="Descargar">
+                                                                <HiDownload />
+                                                            </button>
+                                                            <button type="button" onClick={() => handleDeleteSubtaskFile(editingSubtask, f.id)} className="text-red-500 hover:text-red-700">
+                                                                <HiTrash />
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <button type="button" onClick={() => handlePreviewFile(f.id, f.name)} className="text-blue-500 hover:text-blue-700" title="Vista previa">
-                                                            <HiEye />
-                                                        </button>
-                                                        <button type="button" onClick={() => handleDownloadFile(f.id, f.name)} className="text-blue-500 hover:text-blue-700" title="Descargar">
-                                                            <HiDownload />
-                                                        </button>
-                                                        <button type="button" onClick={() => handleDeleteSubtaskFile(editingSubtask, f.id)} className="text-red-500 hover:text-red-700">
-                                                            <HiTrash />
-                                                        </button>
-                                                    </div>
+                                                    {f.uploaded_by && (
+                                                        <div className="mt-1 text-[10px] text-slate-400 leading-tight">
+                                                            subido por {f.uploaded_by.name} · {dayjs(f.created_at).format('DD/MM/YYYY')}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>

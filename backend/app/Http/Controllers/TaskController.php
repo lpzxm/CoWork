@@ -2,20 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use App\DTOs\TaskData;
-use App\Http\Resources\TaskResource;
-use App\Mail\Task\TaskAssignmentMail;
-use App\Mail\Task\TaskReviewRequestMail;
-use App\Mail\Task\TaskStatusChangedMail;
-use App\Models\Status;
-use App\Models\Task;
-use App\Models\User;
-use Illuminate\Database\QueryException;
-// envio de correos a usuarios por tareas asignadas y desasignadas
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
+
+use App\DTOs\TaskData;
+use App\Http\Resources\TaskResource;
+use App\Models\Status;
+use App\Models\Task;
+use App\Models\User;
+
+// envio de correos a usuarios por tareas asignadas y desasignadas
+use App\Mail\Task\TaskAssignmentMail;
+use App\Mail\Task\TaskReviewRequestMail;
+use App\Mail\Task\TaskStatusChangedMail;
 
 class TaskController extends Controller
 {
@@ -31,7 +34,7 @@ class TaskController extends Controller
             if ($currentUser->hasRole(['super-admin', 'admin'])) {
                 $tasks = $tasksRaw->get();
             } else {
-                $tasks = $tasksRaw->whereHas('coordinators', fn ($q) => $q->where('user_id', $currentUser->id))->get();
+                $tasks = $tasksRaw->whereHas('coordinators', fn($q) => $q->where('user_id', $currentUser->id))->get();
             }
 
             return TaskResource::collection($tasks);
@@ -48,9 +51,7 @@ class TaskController extends Controller
     public function store(Request $request)
     {
         $currentUser = auth()->user();
-        if (! $currentUser->hasRole(['super-admin', 'admin'])) {
-            return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
-        }
+        if (!$currentUser->hasRole(['super-admin', 'admin'])) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
 
         try {
             $request->merge(['created_by' => $currentUser->id]);
@@ -58,7 +59,7 @@ class TaskController extends Controller
 
             $hasCoordinators = $request->has('coordinators_ids');
             $ids = $hasCoordinators
-                ? collect((array) $request->input('coordinators_ids'))->filter()->map(fn ($v) => (int) $v)->values()
+                ? collect((array) $request->input('coordinators_ids'))->filter()->map(fn($v) => (int) $v)->values()
                 : collect();
 
             $this->validateCoordinators($ids);
@@ -74,7 +75,7 @@ class TaskController extends Controller
             if ($hasCoordinators) {
 
                 $coordinatorsIds = $task->coordinators()->sync(
-                    $ids->mapWithKeys(fn ($id) => [
+                    $ids->mapWithKeys(fn($id) => [
                         $id => ['assigned_by' => $currentUser->id, 'assigned_at' => now()],
                     ])
                 );
@@ -108,13 +109,9 @@ class TaskController extends Controller
         try {
             $currentUser = auth()->user();
             $task = Task::with(['status', 'creator', 'acceptor', 'decliner', 'updater', 'coordinators', 'files'])->find($id);
-            if (! $task) {
-                return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
-            }
+            if (!$task) return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
 
-            if (! $currentUser->hasRole(['super-admin', 'admin']) && ! $task->coordinators->contains('id', $currentUser->id)) {
-                return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
-            }
+            if (!$currentUser->hasRole(['super-admin', 'admin']) && ! $task->coordinators->contains('id', $currentUser->id)) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
 
             return new TaskResource($task);
         } catch (QueryException $qe) {
@@ -130,36 +127,43 @@ class TaskController extends Controller
     public function update(Request $request, int $id)
     {
         $currentUser = auth()->user();
-        if (! $currentUser->hasRole(['super-admin', 'admin'])) {
-            return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
-        }
+        if (!$currentUser->hasRole(['super-admin', 'admin'])) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
+
 
         try {
             $task = Task::with(['status', 'creator', 'acceptor', 'decliner', 'updater', 'coordinators'])->find($id);
-            if (! $task) {
-                return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
-            }
+            if (!$task) return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
 
-            $oldStatusId = $task->status_id;
-            $oldStatusName = $task->status?->name;
+            if ($task->dt_delivery_limit && \Carbon\Carbon::parse($task->dt_delivery_limit)->isPast() && !$currentUser->hasRole('super-admin')) {
+                return response()->json(['status' => 'error', 'message' => 'No se puede modificar una tarea vencida.'], 400);
+            }
 
             $data = TaskData::validateWithId($request->all(), $task->id);
 
             $hasCoordinators = $request->has('coordinators_ids');
-            $ids = $hasCoordinators ? collect((array) $request->input('coordinators_ids'))->filter()->map(fn ($v) => (int) $v)->values() : collect();
+            $ids = $hasCoordinators ? collect((array) $request->input('coordinators_ids'))->filter()->map(fn($v) => (int) $v)->values() : collect();
 
             $this->validateCoordinators($ids);
 
-            $task->update([
-                'title' => $data->title ?? $task->title,
-                'description' => $data->description ?? $task->description,
-                'status_id' => $data->status_id ?? $task->status_id,
-                'dt_delivery_limit' => $data->dt_delivery_limit ?? $task->dt_delivery_limit,
-                'updated_by' => $currentUser->id,
-            ]);
+            DB::beginTransaction();
 
-            // notificar cambio de estado
-            if ($oldStatusId !== $task->status_id) {
+            $task->title = $data->title ?? $task->title;
+            $task->description = $data->description ?? $task->description;
+            $task->status_id = $data->status_id ?? $task->status_id;
+            $task->dt_delivery_limit = $data->dt_delivery_limit ?? $task->dt_delivery_limit;
+            $task->updated_by = $currentUser->id;
+
+            if (!$task->isDirty() && !$hasCoordinators) {
+                DB::rollBack();
+                return response()->json(['status' => 'error', 'message' => 'No se han realizado cambios.'], 400);
+            }
+
+            $oldStatusId = $task->getOriginal('status_id');
+            $oldStatusName = $task->status?->name;
+
+            if ($task->isDirty()) $task->save();
+            
+            if ($task->wasChanged('status_id')) {
                 $task->load('status');
 
                 $superAdmins = User::role('super-admin')->get();
@@ -185,12 +189,12 @@ class TaskController extends Controller
 
             if ($hasCoordinators) {
                 $coordinatorsIds = $task->coordinators()->sync(
-                    $ids->mapWithKeys(fn ($id) => [
+                    $ids->mapWithKeys(fn($id) => [
                         $id => ['assigned_by' => $currentUser->id, 'assigned_at' => now()],
                     ])
                 );
 
-                if (! empty($coordinatorsIds['attached'])) {
+                if (!empty($coordinatorsIds['attached'])) {
                     $users = User::whereIn('id', $coordinatorsIds['attached'])->get();
 
                     foreach ($users as $user) {
@@ -198,7 +202,7 @@ class TaskController extends Controller
                     }
                 }
 
-                if (! empty($coordinatorsIds['detached'])) {
+                if (!empty($coordinatorsIds['detached'])) {
                     $users = User::whereIn('id', $coordinatorsIds['detached'])->get();
 
                     foreach ($users as $user) {
@@ -207,14 +211,19 @@ class TaskController extends Controller
                 }
             }
 
+            DB::commit();
+
             $task->load(['status', 'creator', 'coordinators', 'files']);
 
             return response()->json(['status' => 'success', 'message' => 'Tarea actualizada correctamente.', 'data' => new TaskResource($task)], 200);
         } catch (ValidationException $ve) {
+            DB::rollBack();
             return response()->json(['status' => 'error', 'message' => 'Datos inválidos.', 'errors' => $ve->errors()], 400);
         } catch (QueryException $qe) {
+            DB::rollBack();
             return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }
@@ -231,19 +240,19 @@ class TaskController extends Controller
 
         try {
             $task = Task::find($id);
-            if (! $task) {
-                return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
-            }
+            if (!$task) return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
 
-            if ($task->subtasks()->count() > 0) {
-                return response()->json(['status' => 'error', 'message' => 'No se puede eliminar la tarea porque tiene subtareas asociadas. Elimínalas primero.'], 409);
-            }
+
+            if ($task->subtasks()->count() > 0) return response()->json(['status' => 'error', 'message' => 'No se puede eliminar la tarea porque tiene subtareas asociadas. Elimínalas primero.'], 409);
+
 
             if (in_array($task->status_id, [Status::IN_PROGRESS, Status::IN_REVIEW, Status::COMPLETED, Status::APPROVED])) {
                 return response()->json(['status' => 'error', 'message' => "No se puede eliminar ya que el estado: {$task->status->name}, no lo permite."], 409);
             }
 
             $coordinators = $task->coordinators;
+
+            DB::beginTransaction();
             $task->coordinators()->detach();
             $task->delete();
 
@@ -251,8 +260,11 @@ class TaskController extends Controller
                 Mail::to($user->email)->send(new TaskAssignmentMail(user: $user, task: $task, action: 'unassigned'));
             }
 
+            DB::commit();
+
             return response()->json(['status' => 'success', 'message' => 'Tarea eliminada correctamente.'], 200);
         } catch (QueryException $e) {
+            DB::rollBack();
             $errorCode = $e->errorInfo[1] ?? null;
             if ($errorCode === 1451 || $errorCode === 1217) {
                 return response()->json(['status' => 'error', 'message' => 'No se puede eliminar la tarea porque tiene registros asociados. Elimínalos primero.'], 409);
@@ -260,6 +272,7 @@ class TaskController extends Controller
 
             return response()->json(['status' => 'error', 'message' => 'Error al eliminar la tarea.'], 400);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['status' => 'error', 'message' => 'Error al eliminar la tarea.'], 400);
         }
     }
@@ -270,18 +283,16 @@ class TaskController extends Controller
 
         try {
             $task = Task::find($id);
-            if (! $task) {
-                return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
+            if (!$task) return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
+
+            if ($task->dt_delivery_limit && \Carbon\Carbon::parse($task->dt_delivery_limit)->isPast() && !$currentUser->hasRole('super-admin')) {
+                return response()->json(['status' => 'error', 'message' => 'No se puede modificar una tarea vencida.'], 400);
             }
 
-            if (! $currentUser->hasRole(['super-admin', 'admin']) && ! $task->coordinators()->where('user_id', $currentUser->id)->exists()) {
-                return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
-            }
-
-            // if ($task->status_id !== Status::COMPLETED) return response()->json(['status' => 'error', 'message' => 'La tarea debe estar completada para solicitar revisión.'], 400);
+            if (!$currentUser->hasRole(['super-admin', 'admin']) && !$task->coordinators->contains('id', $currentUser->id)) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
 
             $allCompleted = $task->subtasks()->where('status_id', '!=', Status::COMPLETED)->count() === 0;
-            if (! $allCompleted) {
+            if (!$allCompleted) {
                 return response()->json(['status' => 'error', 'message' => 'Todas las subtareas deben estar completadas.'], 400);
             }
 
@@ -338,7 +349,7 @@ class TaskController extends Controller
             ]);
         }
 
-        $noRole = $users->reject(fn ($u) => $u->hasRole('coordinador'))->pluck('id');
+        $noRole = $users->reject(fn($u) => $u->hasRole('coordinador'))->pluck('id');
         if ($noRole->isNotEmpty()) {
             throw ValidationException::withMessages([
                 'coordinators_ids' => 'Los siguientes usuarios no tienen el rol de coordinador.',
@@ -349,9 +360,7 @@ class TaskController extends Controller
     public function approveReview(Request $request, int $id)
     {
         $currentUser = auth()->user();
-        if (! $currentUser->hasRole(['super-admin', 'admin'])) {
-            return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
-        }
+        if (! $currentUser->hasRole(['super-admin', 'admin'])) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
 
         try {
             $request->validate([
@@ -360,13 +369,13 @@ class TaskController extends Controller
             ]);
 
             $task = Task::with('status')->find($id);
-            if (! $task) {
-                return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
+            if (!$task) return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
+
+            if ($task->dt_delivery_limit && \Carbon\Carbon::parse($task->dt_delivery_limit)->isPast() && !$currentUser->hasRole('super-admin')) {
+                return response()->json(['status' => 'error', 'message' => 'No se puede modificar una tarea vencida.'], 400);
             }
 
-            if ($task->status_id !== Status::IN_REVIEW) {
-                return response()->json(['status' => 'error', 'message' => 'La tarea no está en proceso de revisión.'], 400);
-            }
+            if ($task->status_id !== Status::IN_REVIEW) return response()->json(['status' => 'error', 'message' => 'La tarea no está en proceso de revisión.'], 400);
 
             $task->status_id = $request->action === 'approved' ? Status::APPROVED : Status::REJECTED;
             if ($request->action === 'approved') {
@@ -374,10 +383,9 @@ class TaskController extends Controller
             } else {
                 $task->declined_by = $currentUser->id;
             }
-            $task->updated_by = $currentUser->id;
-            if ($request->filled('observation')) {
-                $task->observations = $request->observation;
-            }
+
+            if ($request->filled('observation')) $task->observations = $request->observation;
+
             $task->save();
             $task->load(['status', 'creator', 'coordinators', 'files']);
 

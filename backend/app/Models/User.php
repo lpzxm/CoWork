@@ -43,6 +43,8 @@ class User extends Authenticatable implements OAuthenticatable, Auditable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'active' => 'boolean',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
         ];
     }
 
@@ -68,7 +70,7 @@ class User extends Authenticatable implements OAuthenticatable, Auditable
         Audit::create([
             'user_type'      => static::class,
             'user_id'        => $this->id,
-            'event'          => $event, // 👈 'login', 'logout' o 'requestToken'
+            'event'          => $event,
             'auditable_type' => static::class,
             'auditable_id'   => $this->id,
             'old_values'     => [],

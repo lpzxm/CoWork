@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\DB;
 
 use App\Models\Status;
 use App\Models\Task;
@@ -27,7 +28,7 @@ class SubTaskController extends Controller
             $task = Task::find($taskId);
             if (!$task) return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
 
-            $subTasksRaw = SubTask::with(['task', 'status', 'creator', 'acceptor', 'decliner', 'updater', 'files']);
+            $subTasksRaw = SubTask::with(['task', 'status', 'creator', 'acceptor', 'decliner', 'updater', 'files', 'files.uploader']);
 
             if ($currentUser->hasRole(['super-admin', 'admin'])) {
                 $subTasks = $subTasksRaw->where('task_id', $taskId)->get();
@@ -54,12 +55,18 @@ class SubTaskController extends Controller
             $task = Task::find($taskId);
             if (!$task) return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
 
+            if ($task->dt_delivery_limit && \Carbon\Carbon::parse($task->dt_delivery_limit)->isPast()) {
+                return response()->json(['status' => 'error', 'message' => 'No se puede crear subtareas en una tarea vencida.'], 400);
+            }
+
             if (!$currentUser->hasRole(['super-admin', 'admin']) && !$task->coordinators->contains('id', $currentUser->id)) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
 
             if (in_array($task->status_id, [Status::APPROVED, Status::REJECTED])) return response()->json(['status' => 'error', 'message' => "No se puede crear subtareas en el estado: {$task->status->name}, no lo permite."], 409);
 
             $data = SubTaskData::validateWithId($request->all());
 
+
+            DB::beginTransaction();
             $subTask = SubTask::create([
                 'task_id' => $task->id,
                 'title' => $data->title,
@@ -85,12 +92,17 @@ class SubTaskController extends Controller
                 ));
             }
 
+            DB::commit();
+
             return response()->json(['status' => 'success', 'message' => 'Subtarea creada correctamente.', 'data' => new SubTaskResource($subTask)], 200);
         } catch (ValidationException $ve) {
+            DB::rollBack();
             return response()->json(['status' => 'error', 'message' => 'Datos inválidos.', 'errors' => $ve->errors()], 400);
         } catch (QueryException $qe) {
+            DB::rollBack();
             return response()->json(['status' => 'error', 'message' => $qe->getMessage()], 400);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }
@@ -103,10 +115,10 @@ class SubTaskController extends Controller
         $currentUser = auth()->user();
 
         try {
-            $subTask = SubTask::with(['task', 'status', 'creator', 'acceptor', 'decliner', 'updater', 'files'])->find($id);
+            $subTask = SubTask::with(['task', 'status', 'creator', 'acceptor', 'decliner', 'updater', 'files', 'files.uploader'])->find($id);
             if (!$subTask) return response()->json(['status' => 'error', 'message' => 'Subtarea no encontrada.'], 404);
 
-            if (!$currentUser->hasRole(['super-admin', 'admin']) && !$subTask->task->coordinators()->where('user_id', $currentUser->id)->exists()) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
+            if (!$currentUser->hasRole(['super-admin', 'admin']) && !$subTask->task->coordinators->contains('id', $currentUser->id)) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
 
             return new SubTaskResource($subTask);
         } catch (QueryException $qe) {
@@ -124,23 +136,28 @@ class SubTaskController extends Controller
         $currentUser = auth()->user();
 
         try {
-            $subTask = SubTask::with(['task', 'status', 'creator', 'acceptor', 'decliner', 'updater', 'files'])->find($id);
+            $subTask = SubTask::with(['task', 'status', 'creator', 'acceptor', 'decliner', 'updater', 'files', 'files.uploader'])->find($id);
             if (!$subTask) return response()->json(['status' => 'error', 'message' => 'Subtarea no encontrada.'], 404);
+
+            if ($subTask->dt_delivery_limit && \Carbon\Carbon::parse($subTask->dt_delivery_limit)->isPast() && !$currentUser->hasRole(['super-admin'])) {
+                return response()->json(['status' => 'error', 'message' => 'No se puede modificar una subtarea vencida.'], 400);
+            }
 
             if (!$currentUser->hasRole(['super-admin', 'admin']) && !$subTask->task->coordinators->contains('id', $currentUser->id)) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
 
-
             $data = SubTaskData::validateWithId($request->all(), $subTask->id);
 
-            $subTask->update([
-                'title' => $data->title ?? $subTask->title,
-                'description' => $data->description ?? $subTask->description,
-                'status_id' => $data->status_id ?? $subTask->status_id,
-                'dt_delivery_limit' => $data->dt_delivery_limit ?? $subTask->dt_delivery_limit,
-                'updated_by' => $currentUser->id,
-            ]);
+            $subTask->title = $data->title ?? $subTask->title;
+            $subTask->description = $data->description ?? $subTask->description;
+            $subTask->status_id = $data->status_id ?? $subTask->status_id;
+            $subTask->dt_delivery_limit = $data->dt_delivery_limit ?? $subTask->dt_delivery_limit;
+            $subTask->updated_by = $currentUser->id;
 
-            $subTask->load(['status', 'creator']);
+            if (!$subTask->isDirty()) return response()->json(['status' => 'error', 'message' => 'No se realizaron cambios.'], 400);
+
+            $subTask->save();
+
+            $subTask->load(['status', 'creator', 'files.uploader']);
             return response()->json(['status' => 'success', 'message' => 'Subtarea actualizada correctamente.', 'data' => new SubTaskResource($subTask)], 200);
         } catch (ValidationException $ve) {
             return response()->json(['status' => 'error', 'message' => 'Datos inválidos.', 'errors' => $ve->errors()], 400);
@@ -162,12 +179,12 @@ class SubTaskController extends Controller
             $subTask = SubTask::with(['task', 'files'])->find($id);
             if (!$subTask) return response()->json(['status' => 'error', 'message' => 'Subtarea no encontrada.'], 404);
 
-            if (!$currentUser->hasRole(['super-admin', 'admin']) && !$subTask->task->coordinators->contains('id', $currentUser->id))
-                return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
+            if (!$currentUser->hasRole(['super-admin', 'admin']) && !$subTask->task->coordinators->contains('id', $currentUser->id)) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
 
             if ($subTask->files()->count() > 0) return response()->json(['status' => 'error', 'message' => 'No se puede eliminar la subtarea, debido a que contiene archivos. Elimínalos primero.'], 400);
 
             $subTask->delete();
+
             return response()->json(['status' => 'success', 'message' => 'Subtarea eliminada correctamente.'], 200);
         } catch (QueryException $qe) {
             $errorCode = $qe->errorInfo[1] ?? null;

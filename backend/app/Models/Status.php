@@ -22,6 +22,18 @@ class Status extends Model implements Auditable
     
     use \OwenIt\Auditing\Auditable;
 
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'active' => 'boolean',
+        ];
+    }
+
 
     public function tasks(): HasMany
     {

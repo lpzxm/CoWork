@@ -55,6 +55,7 @@ const normalizeSubtask = (st) => ({
     dt_delivery_limit: st.dt_delivery_limit || '',
     files: st.files || [],
     created_by: st.created_by || null,
+    created_at: st.created_at || null,
 })
 
 const TaskDetail = () => {
@@ -412,23 +413,29 @@ const TaskDetail = () => {
         return parsed.isValid() ? parsed.format('DD/MM/YYYY') : value
     }, [])
 
-    const canEditSubtasks = task?.status?.id !== 6 || isSuperAdmin
-
+    const isTaskOverdue = task?.dt_delivery_limit && dayjs(task.dt_delivery_limit).isBefore(dayjs(), 'day')
+    const canEditSubtasks = (task?.status?.id !== 6 || isSuperAdmin) && !isTaskOverdue
+    
     const subtasksContent = useMemo(() => {
-        return subtasks.map((st) => (
-            <SubtaskCard
-                key={st.id}
-                st={st}
-                statusColorMap={statusColorMap}
-                openEditSubtask={openEditSubtask}
-                onDelete={(id) => setConfirmDelete({ open: true, id, type: 'subtask' })}
-                onDownloadFile={handleDownloadFile}
-                onPreviewFile={handlePreviewFile}
-                onDeleteFile={handleDeleteSubtaskFile}
-                formatDate={formatDate}
-                canEdit={canEditSubtasks}
-            />
-        ))
+        return subtasks.map((st) => {
+            const isSubtaskOverdue = st.dt_delivery_limit && dayjs(st.dt_delivery_limit).isBefore(dayjs(), 'day')
+            const canDeleteSubtasks = (isAdmin || isSuperAdmin) || (task?.status?.id !== 6 && !isTaskOverdue && !isSubtaskOverdue)
+            return (
+                <SubtaskCard
+                    key={st.id}
+                    st={st}
+                    statusColorMap={statusColorMap}
+                    openEditSubtask={openEditSubtask}
+                    onDelete={(id) => setConfirmDelete({ open: true, id, type: 'subtask' })}
+                    onDownloadFile={handleDownloadFile}
+                    onPreviewFile={handlePreviewFile}
+                    onDeleteFile={handleDeleteSubtaskFile}
+                    formatDate={formatDate}
+                    canEdit={canEditSubtasks && !isSubtaskOverdue}
+                    canDelete={canDeleteSubtasks}
+                />
+            )
+        })
     }, [subtasks, statusColorMap, openEditSubtask, handleDownloadFile, handlePreviewFile, handleDeleteSubtaskFile, formatDate, canEditSubtasks])
 
     if (taskLoading) {
@@ -473,7 +480,7 @@ const TaskDetail = () => {
                     Volver
                 </Button>
                 <div className="flex items-center gap-2">
-                    {canRequestReview && (
+                    {!isTaskOverdue && canRequestReview && (
                         <Button
                             variant="solid"
                             color="amber"
@@ -482,7 +489,7 @@ const TaskDetail = () => {
                             Solicitar revisión
                         </Button>
                     )}
-                    {isInReview && isAdmin && (
+                    {!isTaskOverdue && isInReview && isAdmin && (
                         <>
                             <Button
                                 variant="solid"

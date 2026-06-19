@@ -32,10 +32,13 @@ class StatusController extends Controller
      */
     public function store(Request $request)
     {
-        if (!auth()->user()->hasRole(['super-admin', 'admin'])) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
+        $currentUser = auth()->user();
+        if (!$currentUser->hasRole(['super-admin', 'admin'])) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
 
         try {
             $data = StatusData::validateWithId($request->all());
+
+            if (Status::where('name', $data->name)->exists() || Status::where('color', $data->color)->exists()) return response()->json(['status' => 'error', 'message' => 'Ya existe un status con ese nombre o color.'], 400);
 
             $status = Status::create([
                 'name' => $data->name,
@@ -82,11 +85,16 @@ class StatusController extends Controller
 
             $data = StatusData::validateWithId($request->all(), $status->id);
 
-            $status->update([
-                'name' => $data->name ?? $status->name,
-                'color' => $data->color ?? $status->color,
-                'active' => $data->active ?? $status->active,
-            ]);
+            // if (Status::where('color', $data->color)->exists()) return response()->json(['status' => 'error', 'message' => 'Ya existe un status con ese nombre o color.'], 400);
+
+            $status->name = $data->name ?? $status->name;
+            $status->color = $data->color ?? $status->color;
+            $status->active = $data->active ?? $status->active;
+
+            if (!$status->isDirty()) return response()->json(['status' => 'error', 'message' => 'No se realizaron cambios.'], 400);
+
+            $status->save();
+
             return response()->json(['status' => 'success', 'message' => 'Status actualizado correctamente.', 'data' => new StatusResource($status)], 200);
         } catch (ValidationException $ve) {
             return response()->json(['status' => 'error', 'message' => 'Datos inválidos.', 'errors' => $ve->errors()], 400);

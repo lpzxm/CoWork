@@ -37,6 +37,7 @@ class TaskStatusChangedMail extends Mailable
                 'changedBy' => $this->changedBy,
                 'oldStatus' => $this->oldStatus,
                 'newStatus' => $this->newStatus,
+                'taskUrl' => config('app.frontend_url') . '/tasks/' . $this->task->id,
             ],
         );
     }

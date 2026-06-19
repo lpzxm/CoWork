@@ -15,6 +15,20 @@ class CoordinatorTask extends Model implements Auditable
 {
     use \OwenIt\Auditing\Auditable;
 
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'assigned_at' => 'datetime',
+            'created_at' => 'datetime',
+            'updated_at' => 'datetime',
+        ];
+    }
+
     public function assigner() : BelongsTo {
         return $this->belongsTo(User::class, 'assigned_by');
     }

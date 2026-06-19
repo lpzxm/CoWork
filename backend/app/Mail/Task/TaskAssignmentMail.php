@@ -35,6 +35,9 @@ class TaskAssignmentMail extends Mailable
     {
         return new Content(
             view: $this->action === 'assigned' ? 'mail.task.assigned' : 'mail.task.unassigned',
+            with: [
+                'taskUrl' => config('app.frontend_url') . '/tasks/' . $this->task->id,
+            ],
         );
     }
 }

@@ -85,6 +85,7 @@ const Tasks = () => {
             id: task.id,
             title: task.title,
             description: task.description || '',
+            created_at: task.created_at || '',
             status_id: sid,
             status_name: task.status?.name || '',
             dt_delivery_limit: task.dt_delivery_limit || '',
@@ -417,9 +418,33 @@ const Tasks = () => {
                 },
             },
             {
+                header: 'Creación',
+                accessorKey: 'created_at',
+                cell: ({ row }) => formatDate(row.original.created_at),
+            },
+            {
                 header: 'Vencimiento',
                 accessorKey: 'dt_delivery_limit',
-                cell: ({ row }) => formatDate(row.original.dt_delivery_limit),
+                cell: ({ row }) => {
+                    const value = row.original.dt_delivery_limit
+                    const statusId = row.original.status_id
+                    if (!value) return <span className="text-slate-400">-</span>
+                    const due = dayjs(value)
+                    if (!due.isValid()) return <span className="text-slate-400">{value}</span>
+                    const excluded = statusId === 4 || statusId === 6 || statusId === 7
+                    const now = dayjs()
+                    const overdue = due.isBefore(now, 'day') && !excluded
+                    const dueToday = due.isSame(now, 'day') && !excluded
+                    const dueSoon = !overdue && !dueToday && due.diff(now, 'day') <= 7 && !excluded
+                    const cls = overdue
+                        ? 'text-red-500 font-semibold'
+                        : dueToday
+                          ? 'text-amber-500 font-semibold'
+                          : dueSoon
+                            ? 'text-orange-500'
+                            : 'text-slate-400'
+                    return <span className={cls}>{formatDate(value)}</span>
+                },
             },
             {
                 id: 'actions',
@@ -428,6 +453,7 @@ const Tasks = () => {
                     const t = row.original
                     const isInReview = t.status_id === 5
                     const isCompleted = t.status_id === 4
+                    const isOverdue = t.dt_delivery_limit && dayjs(t.dt_delivery_limit).isBefore(dayjs(), 'day') && !isAdmin
 
                     return (
                         <div className="flex items-center gap-2">
@@ -438,7 +464,7 @@ const Tasks = () => {
                             >
                                 Detalle
                             </Button>
-                            {isAdmin && (
+                            {isAdmin && !isOverdue && (
                                 <>
                                     <Button size="sm" variant="solid" onClick={() => openEdit(t)} icon={<HiPencil />} />
                                     <Button
@@ -450,7 +476,7 @@ const Tasks = () => {
                                     />
                                 </>
                             )}
-                            {isCompleted && (
+                            {!isOverdue && isCompleted && (
                                 <Button
                                     size="sm"
                                     variant="solid"
@@ -460,7 +486,7 @@ const Tasks = () => {
                                     Revisión
                                 </Button>
                             )}
-                            {isInReview && isAdmin && (
+                            {!isOverdue && isInReview && isAdmin && (
                                 <>
                                     <Button
                                         size="sm"

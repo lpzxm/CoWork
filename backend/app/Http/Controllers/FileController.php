@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\QueryException;
@@ -50,12 +51,20 @@ class FileController extends Controller
                 $task = Task::find($taskId);
                 if (!$task) return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
 
+                if ($task->dt_delivery_limit && \Carbon\Carbon::parse($task->dt_delivery_limit)->isPast()) {
+                    return response()->json(['status' => 'error', 'message' => 'No se pueden subir archivos a una tarea vencida.'], 400);
+                }
+
                 if (!$currentUser->hasRole(['super-admin', 'admin']) && !$task->coordinators->contains('id', $currentUser->id)) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
             }
 
             if ($subTaskId) {
                 $subTask = SubTask::with('task')->find($subTaskId);
                 if (!$subTask) return response()->json(['status' => 'error', 'message' => 'Subtarea no encontrada.'], 404);
+
+                if ($subTask->dt_delivery_limit && \Carbon\Carbon::parse($subTask->dt_delivery_limit)->isPast()) {
+                    return response()->json(['status' => 'error', 'message' => 'No se pueden subir archivos a una subtarea vencida.'], 400);
+                }
 
                 if (!$currentUser->hasRole(['super-admin', 'admin']) && !$subTask->task->coordinators->contains('id', $currentUser->id)) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
 
@@ -69,6 +78,8 @@ class FileController extends Controller
             $extension = $uploaded->getClientOriginalExtension();
             $storedName = time() . '_' . uniqid() . '.' . $extension;
 
+            if (!Storage::disk('public')->exists('files')) Storage::disk('public')->makeDirectory('files');
+
             $path = $uploaded->storeAs('files', $storedName, 'public');
 
             $data = FileData::validateWithId([
@@ -79,35 +90,39 @@ class FileController extends Controller
                 'url' => $path,
                 'uploaded_by' => $currentUser->id,
             ]);
+            DB::beginTransaction();
 
             $file = File::create($data->toArray());
             $file->load('uploader');
 
+            DB::commit();
+
             return response()->json(['status' => 'success', 'message' => 'Archivo subido correctamente.', 'data' => new FileResource($file)], 200);
         } catch (ValidationException $ve) {
+            DB::rollBack();
             return response()->json(['status' => 'error', 'message' => 'Datos inválidos.', 'errors' => $ve->errors()], 400);
         } catch (QueryException $qe) {
+            DB::rollBack();
             return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }
 
     public function show(int $id)
     {
+        $currentUser = auth()->user();
+
         try {
             $file = File::with('uploader', 'task', 'task.coordinators')->find($id);
             if (!$file) return response()->json(['status' => 'error', 'message' => 'Archivo no encontrado.'], 404);
 
-            $currentUser = auth()->user();
             $task = $file->task;
 
             if (!$currentUser->hasRole(['super-admin', 'admin']) && !$task->coordinators->contains('id', $currentUser->id)) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
-            
 
-            if (!Storage::disk('public')->exists($file->url)) 
-                return response()->json(['status' => 'error', 'message' => 'El archivo no existe en el servidor.'], 404);
-            
+            if (!Storage::disk('public')->exists($file->url)) return response()->json(['status' => 'error', 'message' => 'El archivo no existe en el servidor.'], 404);
 
             $mimeType = self::MIME_MAP[$file->file_type] ?? 'application/octet-stream';
 
@@ -128,24 +143,28 @@ class FileController extends Controller
     {
         $currentUser = auth()->user();
         if (!$currentUser->hasRole(['super-admin', 'admin', 'coordinador'])) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
-        
+
         try {
             $file = File::with('task')->find($id);
             if (!$file) return response()->json(['status' => 'error', 'message' => 'Archivo no encontrado.'], 404);
 
             $task = $file->task;
 
-            if (!$currentUser->hasRole(['super-admin', 'admin']) && !$task->coordinators()->where('user_id', $currentUser->id)->exists()) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
+            if (!$currentUser->hasRole(['super-admin', 'admin']) && !$task->coordinators->contains('id', $currentUser->id)) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
+
+            DB::beginTransaction();
+            if (Storage::disk('public')->exists($file->url)) Storage::disk('public')->delete($file->url);
             
-
-            if (Storage::disk('public')->exists($file->url)) { Storage::disk('public')->delete($file->url); }
-
             $file->delete();
+
+            DB::commit();
 
             return response()->json(['status' => 'success', 'message' => 'Archivo eliminado correctamente.'], 200);
         } catch (QueryException $qe) {
+            DB::rollBack();
             return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }
