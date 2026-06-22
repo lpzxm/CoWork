@@ -4,14 +4,21 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use \Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\QueryException;
+use Exception;
 
+// Models
 use App\Models\Task;
 use App\Models\SubTask;
 use App\Models\File;
+
+// DTOs
 use App\DTOs\FileData;
+
+// Resources
 use App\Http\Resources\FileResource;
 
 class FileController extends Controller
@@ -38,20 +45,16 @@ class FileController extends Controller
         if (!$currentUser->hasRole(['super-admin', 'admin', 'coordinador'])) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
 
         try {
-            $request->validate([
-                'file' => 'required|file|mimes:' . implode(',', self::ALLOWED_EXTENSIONS) . '|max:51200',
-                'task_id' => 'required_without:sub_task_id|integer|exists:tasks,id',
-                'sub_task_id' => 'required_without:task_id|integer|exists:sub_tasks,id',
-            ]);
+            $data = FileData::validateData($request->all());
 
-            $taskId = $request->input('task_id');
-            $subTaskId = $request->input('sub_task_id') ?? null;
+            $taskId = $data->task_id;
+            $subTaskId = $data->sub_task_id;
 
             if ($taskId) {
                 $task = Task::find($taskId);
                 if (!$task) return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
 
-                if ($task->dt_delivery_limit && \Carbon\Carbon::parse($task->dt_delivery_limit)->isPast()) {
+                if ($task->dt_delivery_limit && $task->dt_delivery_limit->isBefore(now()->startOfDay()) && !$currentUser->hasRole(['super-admin'])) {
                     return response()->json(['status' => 'error', 'message' => 'No se pueden subir archivos a una tarea vencida.'], 400);
                 }
 
@@ -62,7 +65,7 @@ class FileController extends Controller
                 $subTask = SubTask::with('task')->find($subTaskId);
                 if (!$subTask) return response()->json(['status' => 'error', 'message' => 'Subtarea no encontrada.'], 404);
 
-                if ($subTask->dt_delivery_limit && \Carbon\Carbon::parse($subTask->dt_delivery_limit)->isPast()) {
+                if ($subTask->dt_delivery_limit && $subTask->dt_delivery_limit->isBefore(now()->startOfDay()) && !$currentUser->hasRole(['super-admin'])) {
                     return response()->json(['status' => 'error', 'message' => 'No se pueden subir archivos a una subtarea vencida.'], 400);
                 }
 
@@ -82,7 +85,9 @@ class FileController extends Controller
 
             $path = $uploaded->storeAs('files', $storedName, 'public');
 
-            $data = FileData::validateWithId([
+            DB::beginTransaction();
+
+            $file = File::create([
                 'task_id' => $taskId,
                 'sub_task_id' => $subTaskId ?? null,
                 'file_type' => $extension,
@@ -90,9 +95,6 @@ class FileController extends Controller
                 'url' => $path,
                 'uploaded_by' => $currentUser->id,
             ]);
-            DB::beginTransaction();
-
-            $file = File::create($data->toArray());
             $file->load('uploader');
 
             DB::commit();
@@ -104,7 +106,7 @@ class FileController extends Controller
         } catch (QueryException $qe) {
             DB::rollBack();
             return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
@@ -163,7 +165,7 @@ class FileController extends Controller
         } catch (QueryException $qe) {
             DB::rollBack();
             return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }

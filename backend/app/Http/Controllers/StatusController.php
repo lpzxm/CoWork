@@ -6,8 +6,13 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\QueryException;
 
+// Models
 use App\Models\Status;
+
+// DTOs
 use App\DTOs\StatusData;
+
+// Resources
 use App\Http\Resources\StatusResource;
 
 class StatusController extends Controller
@@ -36,9 +41,7 @@ class StatusController extends Controller
         if (!$currentUser->hasRole(['super-admin', 'admin'])) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
 
         try {
-            $data = StatusData::validateWithId($request->all());
-
-            if (Status::where('name', $data->name)->exists() || Status::where('color', $data->color)->exists()) return response()->json(['status' => 'error', 'message' => 'Ya existe un status con ese nombre o color.'], 400);
+            $data = StatusData::validateData($request->all());
 
             $status = Status::create([
                 'name' => $data->name,
@@ -83,9 +86,7 @@ class StatusController extends Controller
             $status = Status::find($id);
             if (!$status) return response()->json(['status' => 'error', 'message' => 'Status no encontrado.'], 404);
 
-            $data = StatusData::validateWithId($request->all(), $status->id);
-
-            // if (Status::where('color', $data->color)->exists()) return response()->json(['status' => 'error', 'message' => 'Ya existe un status con ese nombre o color.'], 400);
+            $data = StatusData::validateData($request->all(), $status->id);
 
             $status->name = $data->name ?? $status->name;
             $status->color = $data->color ?? $status->color;

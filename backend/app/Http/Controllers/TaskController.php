@@ -4,18 +4,24 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Exception;
 
-use App\DTOs\TaskData;
-use App\Http\Resources\TaskResource;
+// Models
 use App\Models\Status;
 use App\Models\Task;
 use App\Models\User;
 
-// envio de correos a usuarios por tareas asignadas y desasignadas
+// DTOs
+use App\DTOs\TaskData;
+
+// Resources
+use App\Http\Resources\TaskResource;
+
+// Mail - envio de correos a usuarios por tareas asignadas y desasignadas
+use Mail;
 use App\Mail\Task\TaskAssignmentMail;
 use App\Mail\Task\TaskReviewRequestMail;
 use App\Mail\Task\TaskStatusChangedMail;
@@ -40,7 +46,7 @@ class TaskController extends Controller
             return TaskResource::collection($tasks);
         } catch (QueryException $qe) {
             return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }
@@ -55,7 +61,7 @@ class TaskController extends Controller
 
         try {
             $request->merge(['created_by' => $currentUser->id]);
-            $data = TaskData::validateWithId($request->all());
+            $data = TaskData::validateData($request->all());
 
             $hasCoordinators = $request->has('coordinators_ids');
             $ids = $hasCoordinators
@@ -96,7 +102,7 @@ class TaskController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Datos inválidos.', 'errors' => $ve->errors()], 400);
         } catch (QueryException $qe) {
             return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }
@@ -116,7 +122,7 @@ class TaskController extends Controller
             return new TaskResource($task);
         } catch (QueryException $qe) {
             return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }
@@ -134,11 +140,11 @@ class TaskController extends Controller
             $task = Task::with(['status', 'creator', 'acceptor', 'decliner', 'updater', 'coordinators'])->find($id);
             if (!$task) return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
 
-            if ($task->dt_delivery_limit && \Carbon\Carbon::parse($task->dt_delivery_limit)->isPast() && !$currentUser->hasRole('super-admin')) {
+            if ($task->dt_delivery_limit && $task->dt_delivery_limit->isBefore(now()->startOfDay()) && !$currentUser->hasRole('super-admin')) {
                 return response()->json(['status' => 'error', 'message' => 'No se puede modificar una tarea vencida.'], 400);
             }
 
-            $data = TaskData::validateWithId($request->all(), $task->id);
+            $data = TaskData::validateData($request->all(), $task->id);
 
             $hasCoordinators = $request->has('coordinators_ids');
             $ids = $hasCoordinators ? collect((array) $request->input('coordinators_ids'))->filter()->map(fn($v) => (int) $v)->values() : collect();
@@ -222,7 +228,7 @@ class TaskController extends Controller
         } catch (QueryException $qe) {
             DB::rollBack();
             return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
@@ -271,7 +277,7 @@ class TaskController extends Controller
             }
 
             return response()->json(['status' => 'error', 'message' => 'Error al eliminar la tarea.'], 400);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             return response()->json(['status' => 'error', 'message' => 'Error al eliminar la tarea.'], 400);
         }
@@ -321,7 +327,7 @@ class TaskController extends Controller
             return response()->json(['status' => 'success', 'message' => 'Solicitud de revisión enviada correctamente.', 'data' => new TaskResource($task)], 200);
         } catch (QueryException $qe) {
             return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }
@@ -408,7 +414,7 @@ class TaskController extends Controller
             return response()->json(['status' => 'success', 'message' => $mensaje, 'data' => new TaskResource($task)], 200);
         } catch (QueryException $qe) {
             return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }

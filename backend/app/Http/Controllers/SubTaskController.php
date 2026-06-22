@@ -6,14 +6,22 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Exception;
 
+// Models
 use App\Models\Status;
 use App\Models\Task;
 use App\Models\SubTask;
 use App\Models\User;
+
+// DTOs
 use App\DTOs\SubTaskData;
+
+// Resources
 use App\Http\Resources\SubTaskResource;
-use Illuminate\Support\Facades\Mail;
+
+// Mail
+use Mail;
 use App\Mail\Task\SubTaskCreatedMail;
 
 class SubTaskController extends Controller
@@ -39,7 +47,7 @@ class SubTaskController extends Controller
             return SubTaskResource::collection($subTasks);
         } catch (QueryException $qe) {
             return response()->json(['status' => 'error', 'message' => $qe->getMessage()], 400);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }
@@ -55,7 +63,7 @@ class SubTaskController extends Controller
             $task = Task::find($taskId);
             if (!$task) return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
 
-            if ($task->dt_delivery_limit && \Carbon\Carbon::parse($task->dt_delivery_limit)->isPast()) {
+            if ($task->dt_delivery_limit && $task->dt_delivery_limit->isBefore(now()->startOfDay())) {
                 return response()->json(['status' => 'error', 'message' => 'No se puede crear subtareas en una tarea vencida.'], 400);
             }
 
@@ -63,8 +71,7 @@ class SubTaskController extends Controller
 
             if (in_array($task->status_id, [Status::APPROVED, Status::REJECTED])) return response()->json(['status' => 'error', 'message' => "No se puede crear subtareas en el estado: {$task->status->name}, no lo permite."], 409);
 
-            $data = SubTaskData::validateWithId($request->all());
-
+            $data = SubTaskData::validateData($request->all());
 
             DB::beginTransaction();
             $subTask = SubTask::create([
@@ -101,7 +108,7 @@ class SubTaskController extends Controller
         } catch (QueryException $qe) {
             DB::rollBack();
             return response()->json(['status' => 'error', 'message' => $qe->getMessage()], 400);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             DB::rollBack();
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
@@ -123,7 +130,7 @@ class SubTaskController extends Controller
             return new SubTaskResource($subTask);
         } catch (QueryException $qe) {
             return response()->json(['status' => 'error', 'message' => 'Error de base de datos.', 'error' => $qe->getMessage()], 400);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }
@@ -139,13 +146,16 @@ class SubTaskController extends Controller
             $subTask = SubTask::with(['task', 'status', 'creator', 'acceptor', 'decliner', 'updater', 'files', 'files.uploader'])->find($id);
             if (!$subTask) return response()->json(['status' => 'error', 'message' => 'Subtarea no encontrada.'], 404);
 
-            if ($subTask->dt_delivery_limit && \Carbon\Carbon::parse($subTask->dt_delivery_limit)->isPast() && !$currentUser->hasRole(['super-admin'])) {
+            $task = Task::find($subTask->task_id);
+            if (!$task) return response()->json(['status' => 'error', 'message' => 'Tarea no encontrada.'], 404);
+
+            if ($subTask->dt_delivery_limit && $task->dt_delivery_limit->isBefore(now()->startOfDay()) && !$currentUser->hasRole(['super-admin'])) {
                 return response()->json(['status' => 'error', 'message' => 'No se puede modificar una subtarea vencida.'], 400);
             }
 
             if (!$currentUser->hasRole(['super-admin', 'admin']) && !$subTask->task->coordinators->contains('id', $currentUser->id)) return response()->json(['status' => 'error', 'message' => 'No autorizado.'], 403);
 
-            $data = SubTaskData::validateWithId($request->all(), $subTask->id);
+            $data = SubTaskData::validateData($request->all(), $subTask->id);
 
             $subTask->title = $data->title ?? $subTask->title;
             $subTask->description = $data->description ?? $subTask->description;
@@ -163,7 +173,7 @@ class SubTaskController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Datos inválidos.', 'errors' => $ve->errors()], 400);
         } catch (QueryException $qe) {
             return response()->json(['status' => 'error', 'message' => $qe->getMessage()], 400);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }
@@ -193,7 +203,7 @@ class SubTaskController extends Controller
             }
 
             return response()->json(['status' => 'error', 'message' => $qe->getMessage()], 400);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 400);
         }
     }

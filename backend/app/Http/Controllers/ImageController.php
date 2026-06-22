@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Database\QueryException;
+use Exception;
 
 class ImageController extends Controller
 {
@@ -18,7 +18,7 @@ class ImageController extends Controller
             $mime = Storage::disk('public')->mimeType($path);
 
             return response($file, 200)->header('Content-Type', $mime);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return response()->json(['status' => 'error', 'message' => 'Error al obtener la imagen.'], 400);
         }
     }
