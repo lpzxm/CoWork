@@ -7,7 +7,6 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Passport\Passport;
-use Carbon\Carbon;
 
 class AppServiceProvider extends ServiceProvider
 {

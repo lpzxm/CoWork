@@ -9,11 +9,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\User;
 
 use OwenIt\Auditing\Contracts\Auditable;
+use \OwenIt\Auditing\Auditable as AuditableTrait;
+use OwenIt\Auditing\Models\Audit;
 
 #[Table('verify_codes')]
 #[Fillable(['user_id', 'code', 'type', 'expires_at', 'used_at'])]
 class VerifyCode extends Model implements Auditable
 {
+    use AuditableTrait;
+    
     protected function casts(): array
     {
         return [
@@ -25,7 +29,6 @@ class VerifyCode extends Model implements Auditable
     }
 
 
-    use \OwenIt\Auditing\Auditable;
     
     public function user() : BelongsTo
     {

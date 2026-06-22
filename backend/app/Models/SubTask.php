@@ -10,12 +10,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 use OwenIt\Auditing\Contracts\Auditable;
+use \OwenIt\Auditing\Auditable as AuditableTrait;
+use OwenIt\Auditing\Models\Audit;
 
 #[Table('sub_tasks')]
 #[Fillable(['task_id', 'title', 'description', 'status_id', 'created_by', 'accepted_by', 'declined_by', 'updated_by', 'deleted_by', 'dt_delivery_limit'])]
 class SubTask extends Model implements Auditable
 {
-    use \OwenIt\Auditing\Auditable;
+    use AuditableTrait, SoftDeletes;
 
     /**
      * Get the attributes that should be cast.
@@ -32,8 +34,6 @@ class SubTask extends Model implements Auditable
             
         ];
     }
-
-    use SoftDeletes;
     
     public function task(): BelongsTo
     {

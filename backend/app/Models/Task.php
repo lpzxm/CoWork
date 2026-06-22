@@ -12,12 +12,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 use OwenIt\Auditing\Contracts\Auditable;
+use \OwenIt\Auditing\Auditable as AuditableTrait;
+use OwenIt\Auditing\Models\Audit;
 
 #[Table('tasks')]
 #[Fillable(['title', 'description', 'status_id', 'created_by', 'accepted_by', 'declined_by', 'updated_by', 'deleted_by', 'dt_delivery_limit', 'observations'])]
 class Task extends Model implements Auditable
 {
-    use \OwenIt\Auditing\Auditable;
+    use AuditableTrait, SoftDeletes;
 
     /**
      * Get the attributes that should be cast.
@@ -33,8 +35,6 @@ class Task extends Model implements Auditable
             'deleted_at' => 'datetime',
         ];
     }
-
-    use SoftDeletes;
 
     public function creator() : BelongsTo {
         return $this->belongsTo(User::class, 'created_by');

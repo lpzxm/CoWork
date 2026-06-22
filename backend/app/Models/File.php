@@ -7,7 +7,11 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\Table;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
 use OwenIt\Auditing\Contracts\Auditable;
+use \OwenIt\Auditing\Auditable as AuditableTrait;
+use OwenIt\Auditing\Models\Audit;
+
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 
@@ -15,7 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable(['task_id', 'sub_task_id', 'file_type', 'file_name', 'url', 'uploaded_by'])] 
 class File extends Model implements Auditable
 {
-    use \OwenIt\Auditing\Auditable;
+    use AuditableTrait, SoftDeletes;
 
     /**
      * Get the attributes that should be cast.
@@ -30,8 +34,6 @@ class File extends Model implements Auditable
             'deleted_at' => 'datetime',
         ];
     }
-
-    use SoftDeletes;
 
     public function task() : BelongsTo {
         return $this->belongsTo(Task::class);

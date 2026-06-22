@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -24,13 +23,12 @@ use OwenIt\Auditing\Models\Audit;
 class User extends Authenticatable implements OAuthenticatable, Auditable
 {
 
+    use HasApiTokens, HasFactory, Notifiable, HasRoles, AuditableTrait;
+
     protected $auditExclude = [
         'password',
         'remember_token',
     ];
-    
-    /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, HasRoles, AuditableTrait;
 
     /**
      * Get the attributes that should be cast.
@@ -101,20 +99,23 @@ class User extends Authenticatable implements OAuthenticatable, Auditable
         return str_shuffle($password);
     }
 
-    public function verifyAuthCodes () : HasMany
+    public function verifyAuthCodes(): HasMany
     {
         return $this->hasMany(VerifyCode::class);
     }
 
-    public function assignedTasks() : BelongsToMany{
+    public function assignedTasks(): BelongsToMany
+    {
         return $this->belongsToMany(Task::class, 'coordinator_tasks')->withPivot('assigned_by')->withTimestamps();
     }
 
-    public function createdTasks() : HasMany {
+    public function createdTasks(): HasMany
+    {
         return $this->hasMany(Task::class, 'created_by');
     }
 
-    public function uploadedFiles() : HasMany {
+    public function uploadedFiles(): HasMany
+    {
         return $this->hasMany(File::class, 'uploaded_by');
     }
 }
