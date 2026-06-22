@@ -25,10 +25,9 @@ class TaskData extends Data
         public ?string $observations = null
     ) {}
 
-
-    public static function rules(?int $taskId = null): array
+    public static function validateData(array $data, ?int $taskId = null): static
     {
-        return [
+        $rules = [
             'title' => [
                 $taskId ? 'nullable' : 'required',
                 'string',
@@ -48,24 +47,30 @@ class TaskData extends Data
                 'integer',
                 Rule::exists('status', 'id'),
             ],
-            'dt_delivery_limit' => ['nullable', 'date'],
+            'dt_delivery_limit' => ['nullable', 'date', 'after_or_equal:today'],
         ];
-    }
 
-    public static function messages(): array
-    {
-        return [
+        $messages = [
+            '*.string' => 'El :attribute debe ser un texto válido.',
+            '*.exists' => 'El :attribute no existe.',
+
             'title.required' => 'El titulo es obligatorio.',
-            'title.string' => 'El titulo debe ser un texto válido.',
             'title.max' => 'El titulo debe tener menos de 255 caracteres.',
-            'description.string' => 'La descripcion debe ser un texto valido.',
-            'status_id.exists' => 'El status no existe.',
+            'description.max' => 'La descripcion debe tener menos de 5000 caracteres.',
             'dt_delivery_limit.date' => 'La fecha de entrega debe ser una fecha valida.',
         ];
-    }
 
-    public static function validateWithId(array $data, ?int $id = null): static
-    {
-        return static::from(Validator::validate($data, static::rules($id), static::messages()));
+        $attributes = [
+            'title' => 'titulo',
+            'description' => 'descripcion',
+            'status_id' => 'estado',
+            'created_by' => 'creador',
+            'accepted_by' => 'aceptador',
+            'declined_by' => 'rechazador',
+            'updated_by' => 'actualizador',
+            'dt_delivery_limit' => 'fecha de entrega',
+        ];
+
+        return static::from(Validator::validate($data, $rules, $messages, $attributes));
     }
 }

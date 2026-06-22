@@ -14,34 +14,36 @@ class StatusData extends Data
         public ?bool $active = null,
     ) {}
 
-
-    public static function rules(?int $statusId = null): array
+    public static function validateData(array $data, ?int $statusId = null): static
     {
-        return [
+        $rules = [
             'name' => [
                 $statusId ? 'nullable' : 'required',
                 'string',
                 'max:255',
                 Rule::unique('status', 'name')->ignore($statusId),
             ],
-            'color' => ['nullable', 'string', 'max:50'],
+            'color' => [
+                'nullable',
+                'string',
+                'max:50',
+                Rule::unique('status', 'color')->ignore($statusId)
+            ],
             'active' => ['nullable', 'boolean'],
         ];
-    }
 
-    public static function messages(): array
-    {
-        return [
-            'name.string' => 'El nombre debe ser un texto válido.',
-            'name.unique' => 'El estado ya está registrado.',
-            'color.string' => 'El color debe ser un texto valido.',
-            'color.unique' => 'El color ya está registrado.',
+        $messages = [
+            '*.string' => 'El :attribute debe ser un texto válido.',
+            '*.unique' => 'El :attribute ya está registrado.',
             'active.boolean' => 'El estado debe ser activo o inactivo.',
         ];
-    }
 
-    public static function validateWithId(array $data, ?int $id = null): static
-    {
-        return static::from(Validator::validate($data, static::rules($id), static::messages()));
+        $attributes = [
+            'name' => 'nombre',
+            'color' => 'color',
+            'active' => 'activo',
+        ];
+
+        return static::from(Validator::validate($data, $rules, $messages, $attributes));
     }
 }

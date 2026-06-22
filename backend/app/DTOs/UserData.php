@@ -17,9 +17,9 @@ class UserData extends Data
 
     ) {}
 
-    public static function rules(?int $userId = null): array
+    public static function validateData(array $data, ?int $userId = null): static
     {
-        return [
+        $rules = [
             'name' => [
                 $userId ? 'nullable' : 'required',
                 'string',
@@ -39,26 +39,24 @@ class UserData extends Data
             'active' => ['nullable', 'boolean'],
             'role' => ['nullable', 'string', Rule::exists('roles', 'name')],
         ];
-    }
 
-    public static function messages(): array
-    {
-        return [
-            'name.string' => 'El nombre debe ser un texto válido.',
-            'name.unique' => 'El nombre ya está registrado.',
-            'email.string' => 'El correo electrónico debe ser un texto válido.',
+        $messages = [
+            '*.string' => 'El :attribute debe ser un texto válido.',
+            '*.unique' => 'El :attribute ya está registrado.',
             'email.email' => 'El correo electrónico debe ser una dirección de correo válida.',
-            'email.unique' => 'El correo electrónico ya está registrado.',
-            'password.string' => 'La contraseña debe ser un texto válido.',
             'password.min' => 'La contraseña debe tener al menos 8 caracteres.',
             'password.regex' => 'La contraseña debe contener al menos una letra minúscula, una letra mayúscula y un número y un carácter especial.',
-            'role.string' => 'El rol debe ser un texto válido.',
             'role.exists' => 'El rol especificado no existe.',
         ];
-    }
 
-    public static function validateWithId(array $data, ?int $id = null): static
-    {
-        return static::from(Validator::validate($data, static::rules($id), static::messages()));
+        $attributes = [
+            'name' => 'nombre',
+            'email' => 'correo electronico',
+            'password' => 'contraseña',
+            'active' => 'estado',
+            'role' => 'rol',
+        ];
+
+        return static::from(Validator::validate($data, $rules, $messages, $attributes));
     }
 }

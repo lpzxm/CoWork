@@ -26,10 +26,9 @@ class SubTaskData extends Data
         public ?Carbon $dt_delivery_limit = null,
     ) {}
 
-
-    public static function rules(?int $subTaskId = null): array
+    public static function validateData(array $data, ?int $subTaskId = null): static
     {
-        return [
+        $rules = [
             'title' => [
                 $subTaskId ? 'nullable' : 'required',
                 'string',
@@ -55,30 +54,34 @@ class SubTaskData extends Data
                 'integer',
                 Rule::exists('tasks', 'id'),
             ],
-            'dt_delivery_limit' => ['nullable', 'date'],
+            'dt_delivery_limit' => ['nullable', 'date', 'after_or_equal:today'],
         ];
-    }
 
-    public static function messages(): array
-    {
-        return [
+        $messages = [
+            '*.string' => 'El :attribute debe ser un texto válido.',
+            '*.exists' => 'El :attribute no existe.',
+
             'title.required' => 'El titulo es obligatorio.',
-            'title.string' => 'El titulo debe ser un texto válido.',
             'title.max' => 'El titulo debe tener menos de 255 caracteres.',
+            'description.max' => 'La descripcion debe tener menos de 5000 caracteres.',
             'description.string' => 'La descripcion debe ser un texto valido.',
-            'created_by.exists' => 'El creador no existe.',
-            'accepted_by.exists' => 'El aceptador no existe.',
-            'declined_by.exists' => 'El rechazador no existe.',
-            'updated_by.exists' => 'El actualizador no existe.',
-            'deleted_by.exists' => 'El eliminador no existe.',
-            'task_id.exists' => 'La tarea no existe.',
-            'status_id.exists' => 'El status no existe.',
             'dt_delivery_limit.date' => 'La fecha de entrega debe ser una fecha valida.',
+            'dt_delivery_limit.after_or_equal' => 'La fecha de entrega debe ser igual o posterior a la fecha actual.',
         ];
-    }
 
-    public static function validateWithId(array $data, ?int $subTaskId = null): static
-    {
-        return static::from(Validator::validate($data, static::rules($subTaskId), static::messages()));
+        $attributes = [
+            'title' => 'titulo',
+            'description' => 'correo electronico',
+            'created_by' => 'creado por',
+            'accepted_by' => 'aceptado por',
+            'declined_by' => 'rechazado por',
+            'updated_by' => 'actualizado por',
+            'deleted_by' => 'eliminado por',
+            'status_id' => 'estado',
+            'task_id' => 'tarea',
+            'dt_delivery_limit' => 'fecha de entrega',
+        ];
+
+        return static::from(Validator::validate($data, $rules, $messages, $attributes));
     }
 }

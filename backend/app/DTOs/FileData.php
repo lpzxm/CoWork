@@ -17,52 +17,74 @@ class FileData extends Data
         public ?int $uploaded_by = null,
     ) {}
 
-    public static function rules(?int $fileId = null): array
+    private const ALLOWED_EXTENSIONS = ['pdf', 'pptx', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png', 'gif', 'webp'];
+
+
+    public static function validateData(array $data, ?int $fileId = null): static
     {
-        return [
-            'task_id' => ['nullable', 'integer', Rule::exists('tasks', 'id')],
-            'sub_task_id' => ['nullable', 'integer', Rule::exists('sub_tasks', 'id')],
-            'file_type' => [
+        $rules = [
+            'file' =>[
                 $fileId ? 'nullable' : 'required',
+                'file',
+                'mimes:' . implode(',', self::ALLOWED_EXTENSIONS),
+                'max:51200',
+            ],
+            'task_id' => [
+                'required_without:sub_task_id',
+                'integer',
+                Rule::exists('tasks', 'id'),
+            ],
+            'sub_task_id' => [
+                'required_without:task_id',
+                'integer',
+                Rule::exists('sub_tasks', 'id'),
+            ],
+            'file_type' => [
+                'nullable',
                 'string',
                 'max:50',
             ],
             'file_name' => [
-                $fileId ? 'nullable' : 'required',
+                'nullable',
                 'string',
                 'max:255',
             ],
             'url' => [
-                $fileId ? 'nullable' : 'required',
+                'nullable',
                 'string',
             ],
             'uploaded_by' => [
-                $fileId ? 'nullable' : 'required',
+                'nullable',
                 'integer',
                 Rule::exists('users', 'id'),
             ],
         ];
-    }
 
-    public static function messages(): array
-    {
-        return [
-            'task_id.required' => 'La tarea es requerida.',
-            'task_id.integer' => 'La tarea debe ser un ID válido.',
-            'task_id.exists' => 'La tarea no existe.',
-            'sub_task_id.integer' => 'La subtarea debe ser un ID válido.',
-            'sub_task_id.exists' => 'La subtarea no existe.',
-            'file_type.required' => 'El tipo de archivo es requerido.',
-            'file_name.required' => 'El nombre del archivo es requerido.',
-            'url.required' => 'La URL del archivo es requerida.',
-            'uploaded_by.required' => 'El usuario que sube el archivo es requerido.',
-            'uploaded_by.integer' => 'El usuario debe ser un ID válido.',
-            'uploaded_by.exists' => 'El usuario no existe.',
+        $messages = [
+            '*.required' => 'El campo :attribute es obligatorio.',
+            '*.integer' => 'El campo :attribute debe ser un ID numérico válido.',
+            '*.string' => 'El campo :attribute debe ser una cadena de texto válida.',
+            '*.exists' => 'El :attribute seleccionado no es válido o no existe.',
+            '*.max' => 'El campo :attribute no debe superar el límite permitido.',
+
+            'file.file' => 'El recurso subido debe ser un archivo válido.',
+            'file.mimes' => 'El archivo debe tener una extensión válida (' . implode(', ', self::ALLOWED_EXTENSIONS) . ').',
+            'file.max' => 'El archivo es demasiado pesado. El tamaño máximo permitido es de 50 MB.',
+
+            'task_id.required_without' => 'Debes asignar este archivo a una tarea si no se ha especificado una subtarea.',
+            'sub_task_id.required_without' => 'Debes asignar este archivo a una subtarea si no se ha especificado una tarea.',
         ];
-    }
 
-    public static function validateWithId(array $data, ?int $fileId = null): static
-    {
-        return static::from(Validator::validate($data, static::rules($fileId), static::messages()));
+        $attributes = [
+            'file' => 'archivo',
+            'task_id' => 'tarea',
+            'sub_task_id' => 'subtarea',
+            'file_type' => 'tipo de archivo',
+            'file_name' => 'nombre del archivo',
+            'url' => 'url del archivo',
+            'uploaded_by' => 'usuario que sube el archivo',
+        ];
+
+        return static::from(Validator::validate($data, $rules, $messages, $attributes));
     }
 }

@@ -219,17 +219,23 @@ const Users = () => {
             setFormValues({ name: '', email: '', role: 'coordinador', active: true })
             setShowForm(false)
         } catch (err) {
-            const apiErrors = err?.response?.data?.errors
+            const apiErrors = err?.response?.data?.errors;
+            let customMessage = err?.response?.data?.message || 'No se pudo guardar el usuario.'
             if (apiErrors) {
                 const fieldErrors = Object.keys(apiErrors).reduce((acc, key) => {
                     const value = apiErrors[key]
                     acc[key] = Array.isArray(value) ? value[0] : value
                     return acc
-                }, {})
+                }, {});
                 setErrors(fieldErrors)
+
+                const firstError = Object.values(apiErrors)[0];
+                if(Array.isArray(firstError) && firstError.length > 0) {
+                    customMessage = firstError[0];
+                }
             }
 
-            openNotification('danger', 'Error', err?.response?.data?.message || 'No se pudo guardar el usuario.')
+            openNotification('danger', 'Error', customMessage);
         } finally {
             setSubmitting(false)
         }
