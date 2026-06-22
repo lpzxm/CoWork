@@ -47,6 +47,7 @@ const variantClasses = (colorKey, variant, active) => {
   const base = {
     solid: [
       `bg-[var(${v})] text-white`,
+      colorKey === 'secondary' && 'dark:text-black',
       active ? '' : 'hover:opacity-75',
       'active:opacity-100',
     ],

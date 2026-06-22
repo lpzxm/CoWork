@@ -107,6 +107,7 @@ const SubtaskFormDrawer = ({
                             <FormItem label="Vencimiento">
                                 <DatePicker
                                     value={values.dt_delivery_limit}
+                                    minDate={new Date()}
                                     onChange={(date) => setFieldValue('dt_delivery_limit', date)}
                                     inputFormat="YYYY-MM-DD"
                                     placeholder="Selecciona la fecha"
